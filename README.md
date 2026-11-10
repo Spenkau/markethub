@@ -41,7 +41,7 @@ To restart these services, use `-Action Start`, then run `scripts/start.ps1` nor
 
 ## Local configuration
 
-`.env` contains local credentials and is excluded from Git. `.env.example` contains the configuration template without passwords. The application uses the PostgreSQL database `markethub` and a dedicated non-superuser role `markethub`. Cache and queues use Redis; sessions use PostgreSQL. Queue workers can be started separately with `php artisan queue:work` when jobs are introduced.
+`.env` contains local credentials and is excluded from Git. `.env.example` contains the configuration template without passwords. The application uses the PostgreSQL database `markethub` and a dedicated non-superuser role `markethub`. Cache and queues use Redis; sessions use local files. Queue workers can be started separately with `php artisan queue:work` when jobs are introduced.
 
 The hosts file (`C:\Windows\System32\drivers\etc\hosts`) must contain:
 
@@ -75,7 +75,7 @@ Use the Nginx scripts for local serving. Vite assets are built with `npm.cmd run
 {"data":[{"key":"application","value":"MarketHub"},{"key":"environment","value":"local"}]}
 ```
 
-The idempotent `SystemCheckSeeder` populates these records. No demo users, products, orders, or marketplace records are created. No Filament is installed.
+The idempotent `SystemCheckSeeder` populates these records. No demo users, products, orders, or marketplace records are created.
 
 ```powershell
 php artisan test
@@ -86,3 +86,49 @@ Invoke-RestMethod http://markethub.test/api/system-checks
 The standard tests and API feature test use SQLite in memory, isolated from the development database. The API test verifies actual database reads and repeatable seeding. Live HTTP checks verify the PostgreSQL-backed environment separately.
 
 Logs: `infra/runtime/logs/error.log`, `infra/runtime/logs/access.log`, `infra/runtime/php-error.log`, `storage/logs/laravel.log`. Runtime files, passwords, `.env`, dependencies, and build output are excluded from Git. PostgreSQL administrator credentials from initial provisioning are stored locally in `C:\tools\markethub-setup\credentials.json`; this file is outside the repository.
+## Административная панель (этап 2)
+
+Адрес: **http://markethub.test/admin**. Установлен Filament 5.11.2, интерфейс на русском языке. Бренд — MarketHub. Боковое меню адаптируется к мобильным экранам; на ноутбуке его можно свернуть. Светлая, тёмная и системная темы доступны в стандартном меню пользователя.
+
+Разделы: Дашборд, Заказы, Товары, Остатки, Маркетплейсы, Аналитика, Настройки. Карточки показывают нулевую выручку, количество заказов, товаров и подключений. Разделы динамики продаж, последних заказов и интеграций показывают пустые состояния. Бизнес-модели, CRUD и API маркетплейсов пока не реализованы.
+
+### Создание администратора
+
+В обычном интерактивном PowerShell, из папки проекта:
+
+```powershell
+php artisan markethub:admin
+```
+
+Команда запросит имя, email, пароль и подтверждение пароля. Пароль вводится скрыто, не передаётся через аргументы и не выводится в терминал. Требуется не менее 12 символов, строчные и заглавные буквы, цифра и специальный символ. В БД сохраняется хеш пароля. Если терминал не поддерживает скрытый ввод, команда завершится ошибкой; используйте интерактивный PowerShell или Windows Terminal.
+
+Можно заранее указать только несекретные поля:
+
+```powershell
+php artisan markethub:admin --name="Администратор" --email="you@example.com"
+```
+
+Команда работает только при `APP_ENV=local`. Она создаёт нового пользователя с `is_admin=true`, отклоняет занятый email и не изменяет права существующих пользователей. Используйте эту команду вместо стандартной `make:filament-user`: обычный пользователь не получает административный доступ автоматически. Пароли администратора не засеваются и не хранятся в репозитории. Постоянный администратор не создаётся автоматически: задайте собственные учётные данные командой выше.
+
+Публичной регистрации нет. Гость перенаправляется на `/admin/login`. Доступ к каждой странице панели проверяет `User::canAccessPanel()`; обычный пользователь получает 403 даже в локальном окружении. Признак `is_admin` исключён из массового заполнения. Полноценная система ролей не добавлена. Вход и ограничение частоты попыток предоставляет Filament.
+
+### Локальные хранилища
+
+```dotenv
+APP_LOCALE=ru
+SESSION_DRIVER=file
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+REDIS_CLIENT=predis
+```
+
+Сессии находятся в `storage/framework/sessions`. Memurai используется через Predis. Системная конфигурация службы Memurai на этом этапе не менялась. Проверка записи/чтения кэша и `PING` выполнялась на работающем локальном сервере.
+
+### Проверки
+
+```powershell
+php artisan test
+php vendor/bin/pint --test
+```
+
+Feature-тесты используют SQLite в памяти и не затрагивают PostgreSQL разработки. Проверяются все страницы для гостя, администратора и обычного пользователя, успешный и неуспешный вход, отсутствие регистрации, пустой дашборд и безопасное создание администратора. Опубликованные ресурсы Filament исключены из Git и восстанавливаются при `composer install` через `filament:upgrade`.
