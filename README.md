@@ -1,134 +1,126 @@
 # MarketHub
 
-Local foundation for a CRM for Wildberries and Ozon sellers. Windows native environment, without Docker or WSL.
+CRM для продавцов Wildberries и Ozon. Локальная разработка на Windows без Docker и WSL.
 
-## Stack and paths
+## Окружение
 
-- PHP 8.3.36 NTS: `C:\tools\php83` (including `php-cgi.exe`).
-- Laravel 13.40, Composer 2.11; dependencies pinned in `composer.lock`.
-- PostgreSQL 17: `C:\Program Files\PostgreSQL\17`, service `markethub-postgresql`, port 5432.
-- Memurai Developer 4.1.2 (Redis-compatible): `C:\Program Files\Memurai`, service `Memurai`, port 6379. Development use only.
-- Nginx 1.30.6: `C:\tools\nginx-1.30.6`, listening on 127.0.0.1:80.
-- Project: `D:\Projects\markethub`.
-- FastCGI: `127.0.0.1:9000`, using PHP 8.3 explicitly.
+- PHP 8.3.36 NTS: `C:\tools\php83`.
+- Composer 2.11, Laravel 13.40, Filament 5.11.2.
+- SQLite: `database/markethub.sqlite` (не хранится в Git).
+- Memurai Developer 4.1.2: `C:\Program Files\Memurai`, служба `Memurai`, порт 6379.
+- Nginx 1.30.6: `C:\tools\nginx-1.30.6`, адрес `127.0.0.1:80`.
+- PHP FastCGI: `127.0.0.1:9000`, используется `C:\tools\php83\php-cgi.exe`.
+- Проект: `D:\Projects\markethub`.
 
-Required PHP extensions: ctype, curl, dom, fileinfo, filter, hash, mbstring, openssl, pcre, PDO, pdo_pgsql, session, tokenizer, xml. Also enabled: pgsql, intl, zip, pdo_sqlite (isolated tests). Redis uses the Composer package `predis/predis`; a PHP Redis DLL is not needed.
+Расширения PHP: PDO, pdo_sqlite, sqlite3, ctype, curl, dom, fileinfo, filter, hash, intl, mbstring, openssl, session, tokenizer, xml, zip. Redis работает через Predis, расширение phpredis не требуется.
 
-## Start / stop
+На этапе 3 приложение переключено с PostgreSQL на отдельную SQLite-базу по TASK3.md. Прежняя БД не удалена и не изменена, службы PostgreSQL не переустанавливались. Скрипты проекта больше не требуют PostgreSQL. Копия прежнего локального `.env` находится в `C:\tools\markethub-setup\env-before-task3.backup`, вне Git. При переключении предусмотрено сохранение существующих пользователей с хешами паролей; фактически пользователей в прежней БД не было.
 
-Open PowerShell:
+## Запуск и остановка
 
 ```powershell
 cd D:\Projects\markethub
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
 ```
 
-Open **http://markethub.test**. Requests go through Nginx and PHP FastCGI. The start script performs an HTTP health check and refuses occupied ports.
-
-Stop the project web processes:
+Сайт: **http://markethub.test**, панель: **http://markethub.test/admin**. Запросы обслуживают Nginx и PHP FastCGI. Скрипт проверяет свободные порты и HTTP-ответ `/up`.
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop.ps1
 ```
 
-PostgreSQL and Memurai are Windows services that start automatically. To stop the entire environment, stop the web processes first, then run this in an **administrator** PowerShell:
+Скрипт останавливает только Nginx и PHP проекта. Memurai запускается автоматически как служба Windows. Управление службой из административного PowerShell:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File D:\Projects\markethub\scripts\services.ps1 -Action Start
+# Остановить после завершения работы веб-процессов:
 powershell -NoProfile -ExecutionPolicy Bypass -File D:\Projects\markethub\scripts\services.ps1 -Action Stop
 ```
 
-To restart these services, use `-Action Start`, then run `scripts/start.ps1` normally. No administrator privileges are needed for the web start/stop scripts.
+В `C:\Windows\System32\drivers\etc\hosts` должна быть запись `127.0.0.1 markethub.test`. Изменение hosts и управление системной службой требуют административных прав. Обычный запуск/остановка веб-процессов — нет. Абсолютные пути Nginx находятся в `infra/nginx.conf`.
 
-## Local configuration
-
-`.env` contains local credentials and is excluded from Git. `.env.example` contains the configuration template without passwords. The application uses the PostgreSQL database `markethub` and a dedicated non-superuser role `markethub`. Cache and queues use Redis; sessions use local files. Queue workers can be started separately with `php artisan queue:work` when jobs are introduced.
-
-The hosts file (`C:\Windows\System32\drivers\etc\hosts`) must contain:
-
-```text
-127.0.0.1 markethub.test
-```
-
-Editing hosts and installing/managing Windows services require administrator privileges. Nginx configuration is in `infra/nginx.conf`; adjust its absolute paths if relocating the project or Nginx.
-
-For a fresh checkout with the native services already installed:
-
-```powershell
-composer install
-Copy-Item .env.example .env
-# Set DB_PASSWORD in .env; provision the database and role using PostgreSQL tools.
-php artisan key:generate
-php artisan migrate --seed
-npm.cmd ci
-npm.cmd run build
-```
-
-A PostgreSQL administrator can provision the role/database using psql: `CREATE ROLE markethub LOGIN;`, `\password markethub`, and `CREATE DATABASE markethub OWNER markethub;`. Use the password entered here as `DB_PASSWORD`. Do not use the postgres superuser for the application.
-
-Use the Nginx scripts for local serving. Vite assets are built with `npm.cmd run build`; `npm.cmd run dev` can be used separately for asset development.
-
-## API and verification
-
-`GET http://markethub.test/api/system-checks` reads two technical records from PostgreSQL:
-
-```json
-{"data":[{"key":"application","value":"MarketHub"},{"key":"environment","value":"local"}]}
-```
-
-The idempotent `SystemCheckSeeder` populates these records. No demo users, products, orders, or marketplace records are created.
-
-```powershell
-php artisan test
-composer check-platform-reqs
-Invoke-RestMethod http://markethub.test/api/system-checks
-```
-
-The standard tests and API feature test use SQLite in memory, isolated from the development database. The API test verifies actual database reads and repeatable seeding. Live HTTP checks verify the PostgreSQL-backed environment separately.
-
-Logs: `infra/runtime/logs/error.log`, `infra/runtime/logs/access.log`, `infra/runtime/php-error.log`, `storage/logs/laravel.log`. Runtime files, passwords, `.env`, dependencies, and build output are excluded from Git. PostgreSQL administrator credentials from initial provisioning are stored locally in `C:\tools\markethub-setup\credentials.json`; this file is outside the repository.
-## Административная панель (этап 2)
-
-Адрес: **http://markethub.test/admin**. Установлен Filament 5.11.2, интерфейс на русском языке. Бренд — MarketHub. Боковое меню адаптируется к мобильным экранам; на ноутбуке его можно свернуть. Светлая, тёмная и системная темы доступны в стандартном меню пользователя.
-
-Разделы: Дашборд, Заказы, Товары, Остатки, Маркетплейсы, Аналитика, Настройки. Карточки показывают нулевую выручку, количество заказов, товаров и подключений. Разделы динамики продаж, последних заказов и интеграций показывают пустые состояния. Бизнес-модели, CRUD и API маркетплейсов пока не реализованы.
-
-### Создание администратора
-
-В обычном интерактивном PowerShell, из папки проекта:
-
-```powershell
-php artisan markethub:admin
-```
-
-Команда запросит имя, email, пароль и подтверждение пароля. Пароль вводится скрыто, не передаётся через аргументы и не выводится в терминал. Требуется не менее 12 символов, строчные и заглавные буквы, цифра и специальный символ. В БД сохраняется хеш пароля. Если терминал не поддерживает скрытый ввод, команда завершится ошибкой; используйте интерактивный PowerShell или Windows Terminal.
-
-Можно заранее указать только несекретные поля:
-
-```powershell
-php artisan markethub:admin --name="Администратор" --email="you@example.com"
-```
-
-Команда работает только при `APP_ENV=local`. Она создаёт нового пользователя с `is_admin=true`, отклоняет занятый email и не изменяет права существующих пользователей. Используйте эту команду вместо стандартной `make:filament-user`: обычный пользователь не получает административный доступ автоматически. Пароли администратора не засеваются и не хранятся в репозитории. Постоянный администратор не создаётся автоматически: задайте собственные учётные данные командой выше.
-
-Публичной регистрации нет. Гость перенаправляется на `/admin/login`. Доступ к каждой странице панели проверяет `User::canAccessPanel()`; обычный пользователь получает 403 даже в локальном окружении. Признак `is_admin` исключён из массового заполнения. Полноценная система ролей не добавлена. Вход и ограничение частоты попыток предоставляет Filament.
-
-### Локальные хранилища
+Локальные настройки:
 
 ```dotenv
+APP_ENV=local
 APP_LOCALE=ru
+DB_CONNECTION=sqlite
+DB_DATABASE=D:/Projects/markethub/database/markethub.sqlite
 SESSION_DRIVER=file
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 REDIS_CLIENT=predis
 ```
 
-Сессии находятся в `storage/framework/sessions`. Memurai используется через Predis. Системная конфигурация службы Memurai на этом этапе не менялась. Проверка записи/чтения кэша и `PING` выполнялась на работающем локальном сервере.
+## Установка из Git
 
-### Проверки
+При уже установленных PHP, Composer, Node.js, Nginx и Memurai:
+
+```powershell
+composer install
+Copy-Item .env.example .env
+# Укажите абсолютный DB_DATABASE при нестандартном расположении проекта.
+New-Item -ItemType File database\markethub.sqlite
+php artisan key:generate
+php artisan migrate --seed
+npm.cmd ci
+npm.cmd run build
+```
+
+Не перезаписывайте существующий SQLite-файл или `.env`. `.env.example` использует стандартный путь `database/markethub.sqlite` через конфигурацию Laravel. Ресурсы Filament восстанавливаются при `composer install` через `filament:upgrade`. Секреты, БД, зависимости и временные файлы не включены в репозиторий.
+
+## Администратор и организации
+
+```powershell
+php artisan markethub:admin
+```
+
+Команда работает только в `local`, запрашивает имя, email и дважды пароль. Ввод скрытый, без передачи пароля в аргументах; нужен интерактивный PowerShell/Windows Terminal. Пароль: минимум 12 символов, заглавные и строчные буквы, цифра и специальный символ. В БД сохраняется хеш. Если скрытый ввод недоступен, команда завершится ошибкой. Существующие пользователи не повышаются до администратора. Публичной регистрации нет.
+
+У пользователя может быть несколько организаций через `organization_user`. Используется `active_organization_id`, если членство подтверждено; иначе первая организация по ID. Интерфейса переключения пока нет. Без организации администратор видит пустые списки, создание бизнес-записей запрещено. `is_admin` и `active_organization_id` не доступны для массового заполнения.
+
+Глобальная область Eloquent ограничивает все бизнес-модели текущей организацией. Без пользователя/организации область возвращает пустой результат. Policies проверяют администратора и активную организацию при просмотре, создании, изменении и удалении. Разрешённые серверные CLI-операции используют явный `withoutGlobalScopes()`; он не должен применяться к пользовательскому вводу.
+
+## Демо-данные
+
+```powershell
+php artisan db:seed --class=DemoDataSeeder
+php artisan markethub:demo-attach your-admin@example.com
+```
+
+Вторая команда запрашивает подтверждение, привязывает демокомпанию к существующему локальному администратору и делает её активной. Другие членства не удаляются. Для обычных пользователей и вне `local` команда не выполняет привязку. Создание администратора и подтверждение привязки выполняются пользователем со своими данными, постоянные пароли не засеваются.
+
+Сидер разрешён только в `local/testing`. Создаёт:
+
+- Организацию `markethub-demo`.
+- Два подключения: Wildberries и Ozon, `status=demo`, `is_demo=true`.
+- 50 синтетических товаров электроники, аксессуаров и товаров для дома.
+- 100 размещений, разные цены/остатки, неактивные товары и нулевые остатки.
+
+Названия помечены «демо», SKU начинаются с `DEMO-`, внешние ID — с `SYNTHETIC-`. Это собственные учебные идентификаторы, не реальные ID WB/Ozon. Сидер использует транзакцию и `firstOrCreate`: повторный запуск не создаёт дубликаты и не перезаписывает пользовательские изменения. Пользовательские данные не удаляются. Обычный `db:seed` создаёт только технические записи проверки; демоданные запускаются отдельно.
+
+## Рабочие разделы
+
+- **Товары** (`/admin/products`): поиск по названию/SKU, фильтр активности, создание, просмотр, редактирование и удаление.
+- **Маркетплейсы** (`/admin/marketplaces`): подключения, тип, статус, демопризнак, количество размещений и карточка подключения.
+- **Остатки** (`/admin/inventory`): размещения, товар, SKU, подключение, цена, остаток, статус. Фильтры: нулевой остаток и низкий остаток (1–5), подключение.
+- В карточках товара и подключения есть таблица связанных размещений с переходами к просмотру и редактированию.
+
+Организация присваивается сервером и не редактируется в формах. SKU уникален внутри организации. Товар может размещаться в нескольких подключениях, в том числе одного маркетплейса. Пара товар/подключение уникальна; непустой внешний ID уникален внутри подключения. Составные внешние ключи SQLite запрещают межорганизационные связи, CHECK-ограничения запрещают отрицательные/дробные цены и остатки даже при прямой записи SQL. Формы и модели дополнительно валидируют данные.
+
+Деньги хранятся как целые минимальные единицы, без float. В формах вводятся основные единицы (например `1234,56`), в таблицах — `1 234,56 RUB`. Поддерживаемые валюты с двумя десятичными знаками: RUB, USD, EUR, BYN, KZT, CNY, GBP. Максимальная цена — `9 999 999 999,99`. Товар или подключение с размещениями нельзя удалить: сначала удалите размещения. Это предотвращает потерю зависимых данных.
+
+Дашборд считает товары и реальные активные подключения текущей организации. Выручка и заказы остаются нулевыми; демоподключения не выдаются за реальные интеграции. Заказы, продажи, аналитика, API WB/Ozon и синхронизация очередями пока не реализованы. Доступны русский интерфейс, светлая/тёмная/системная темы и адаптивная навигация Filament.
+
+## Проверки
 
 ```powershell
 php artisan test
 php vendor/bin/pint --test
+composer check-platform-reqs
+Invoke-RestMethod http://markethub.test/api/system-checks
 ```
 
-Feature-тесты используют SQLite в памяти и не затрагивают PostgreSQL разработки. Проверяются все страницы для гостя, администратора и обычного пользователя, успешный и неуспешный вход, отсутствие регистрации, пустой дашборд и безопасное создание администратора. Опубликованные ресурсы Filament исключены из Git и восстанавливаются при `composer install` через `filament:upgrade`.
+Тесты используют SQLite `:memory:` и не затрагивают локальные пользовательские данные. Проверяются вход/выход и права панели, пустые состояния, создание/редактирование товаров и размещений, поиск/фильтры, точная арифметика денег, уникальность SKU и внешних ID, запрет отрицательных значений, изоляция организаций, SQL-ограничения, зависимости удаления, повторяемый демосидер и подтверждение привязки.
+
+`/api/system-checks` возвращает две технические записи из активной SQLite-базы. Бизнес-API пока нет. Логи: `infra/runtime/logs/error.log`, `infra/runtime/logs/access.log`, `infra/runtime/php-error.log`, `storage/logs/laravel.log`. Настройки системной службы Memurai на этапах 2 и 3 не менялись.

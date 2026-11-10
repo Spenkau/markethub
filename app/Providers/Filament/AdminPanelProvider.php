@@ -4,11 +4,11 @@ namespace App\Providers\Filament;
 
 use App\Filament\Pages\Analytics;
 use App\Filament\Pages\Dashboard;
-use App\Filament\Pages\Inventory;
-use App\Filament\Pages\Marketplaces;
 use App\Filament\Pages\Orders;
-use App\Filament\Pages\Products;
 use App\Filament\Pages\Settings;
+use App\Filament\Resources\MarketplaceAccounts\MarketplaceAccountResource;
+use App\Filament\Resources\MarketplaceListings\MarketplaceListingResource;
+use App\Filament\Resources\Products\ProductResource;
 use App\Filament\Widgets\BusinessStats;
 use App\Filament\Widgets\OperationsOverview;
 use Filament\Http\Middleware\Authenticate;
@@ -43,11 +43,13 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
                 Orders::class,
-                Products::class,
-                Inventory::class,
-                Marketplaces::class,
                 Analytics::class,
                 Settings::class,
+            ])
+            ->resources([
+                ProductResource::class,
+                MarketplaceAccountResource::class,
+                MarketplaceListingResource::class,
             ])
             ->widgets([
                 BusinessStats::class,

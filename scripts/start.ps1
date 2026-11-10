@@ -8,7 +8,7 @@ New-Item -ItemType Directory (Join-Path $runtime 'logs') -Force | Out-Null
 New-Item -ItemType Directory (Join-Path $runtime 'temp') -Force | Out-Null
 $prefix = $runtime.Replace('\', '/') + '/'
 
-foreach ($name in @('markethub-postgresql', 'Memurai')) {
+foreach ($name in @('Memurai')) {
     if ((Get-Service $name).Status -ne 'Running') {
         throw "Service $name is stopped. Run scripts/services.ps1 -Action Start as administrator."
     }
