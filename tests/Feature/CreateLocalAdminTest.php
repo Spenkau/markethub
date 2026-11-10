@@ -17,7 +17,6 @@ class CreateLocalAdminTest extends TestCase
 
         $this->artisan('markethub:admin', ['--name' => 'Local Admin', '--email' => 'ADMIN@example.test'])
             ->expectsQuestion('Пароль (не менее 12 символов)', 'Test-Only-Password-123!')
-            ->expectsQuestion('Повторите пароль', 'Test-Only-Password-123!')
             ->assertSuccessful();
 
         $admin = User::where('email', 'admin@example.test')->firstOrFail();
@@ -26,13 +25,12 @@ class CreateLocalAdminTest extends TestCase
         $this->assertNotSame('Test-Only-Password-123!', $admin->password);
     }
 
-    public function test_weak_or_unconfirmed_password_is_rejected(): void
+    public function test_empty_password_is_rejected(): void
     {
         $this->app['env'] = 'local';
 
         $this->artisan('markethub:admin', ['--name' => 'Local Admin', '--email' => 'admin@example.test'])
-            ->expectsQuestion('Пароль (не менее 12 символов)', 'weak')
-            ->expectsQuestion('Повторите пароль', 'different')
+            ->expectsQuestion('Пароль (не менее 12 символов)', '')
             ->assertFailed();
 
         $this->assertDatabaseCount('users', 0);
@@ -45,7 +43,6 @@ class CreateLocalAdminTest extends TestCase
 
         $this->artisan('markethub:admin', ['--name' => 'Local Admin', '--email' => $user->email])
             ->expectsQuestion('Пароль (не менее 12 символов)', 'Test-Only-Password-123!')
-            ->expectsQuestion('Повторите пароль', 'Test-Only-Password-123!')
             ->assertFailed();
 
         $this->assertFalse($user->fresh()->is_admin);

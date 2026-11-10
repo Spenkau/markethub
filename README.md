@@ -1,126 +1,123 @@
-# MarketHub
+# MarketHub REST API
 
-CRM для продавцов Wildberries и Ozon. Локальная разработка на Windows без Docker и WSL.
+Laravel 13.40 / PHP 8.3, PostgreSQL 17, Sanctum, Predis/Memurai. Ветка: `refactor/api-first-postgresql`.
 
-## Окружение
+Приложение предоставляет JSON REST API `/api/v1`. Серверной административной панели и frontend-приложения нет. Корень `/` возвращает статус и версию API. `GET /up` — стандартная проверка Laravel. Совместимый технический `GET /api/system-checks` сохранён; он не предоставляет бизнес-данные.
 
-- PHP 8.3.36 NTS: `C:\tools\php83`.
-- Composer 2.11, Laravel 13.40, Filament 5.11.2.
-- SQLite: `database/markethub.sqlite` (не хранится в Git).
-- Memurai Developer 4.1.2: `C:\Program Files\Memurai`, служба `Memurai`, порт 6379.
-- Nginx 1.30.6: `C:\tools\nginx-1.30.6`, адрес `127.0.0.1:80`.
-- PHP FastCGI: `127.0.0.1:9000`, используется `C:\tools\php83\php-cgi.exe`.
-- Проект: `D:\Projects\markethub`.
+## Архитектура
 
-Расширения PHP: PDO, pdo_sqlite, sqlite3, ctype, curl, dom, fileinfo, filter, hash, intl, mbstring, openssl, session, tokenizer, xml, zip. Redis работает через Predis, расширение phpredis не требуется.
+- Контроллеры: `app/Http/Controllers/Api/V1`, авторизация — Policies.
+- Входные данные: Form Requests, общие инварианты — `CatalogRules`, применяемые также моделями.
+- Ответы: Laravel API Resources, стандартная пагинация и JSON ошибок.
+- Eloquent-модели: Organization, User, Product, MarketplaceAccount, MarketplaceListing.
+- `OrganizationContext` выбирает только подтверждённое членство, глобальная область ограничивает все бизнес-запросы активной организацией.
+- `CatalogQuery` переиспользует запрос размещений для read-only остатков; таблица stocks не создаётся.
+- Модели запрещают удаление при наличии размещений; доменная ошибка сериализуется как 409. Ограничения БД защищают от гонок и некорректных прямых записей.
+- Денежные значения — целые минимальные единицы. API товара использует `price_minor`, в модели/БД сохранено `base_price_minor`.
 
-На этапе 3 приложение переключено с PostgreSQL на отдельную SQLite-базу по TASK3.md. Прежняя БД не удалена и не изменена, службы PostgreSQL не переустанавливались. Скрипты проекта больше не требуют PostgreSQL. Копия прежнего локального `.env` находится в `C:\tools\markethub-setup\env-before-task3.backup`, вне Git. При переключении предусмотрено сохранение существующих пользователей с хешами паролей; фактически пользователей в прежней БД не было.
+## Окружение и конфигурация
 
-## Запуск и остановка
+Windows, без Docker/WSL. PHP: `C:\tools\php83`, Nginx: `C:\tools\nginx-1.30.6`, PostgreSQL: `C:\Program Files\PostgreSQL\17`, Memurai: `C:\Program Files\Memurai`.
 
-```powershell
-cd D:\Projects\markethub
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
-```
-
-Сайт: **http://markethub.test**, панель: **http://markethub.test/admin**. Запросы обслуживают Nginx и PHP FastCGI. Скрипт проверяет свободные порты и HTTP-ответ `/up`.
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop.ps1
-```
-
-Скрипт останавливает только Nginx и PHP проекта. Memurai запускается автоматически как служба Windows. Управление службой из административного PowerShell:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File D:\Projects\markethub\scripts\services.ps1 -Action Start
-# Остановить после завершения работы веб-процессов:
-powershell -NoProfile -ExecutionPolicy Bypass -File D:\Projects\markethub\scripts\services.ps1 -Action Stop
-```
-
-В `C:\Windows\System32\drivers\etc\hosts` должна быть запись `127.0.0.1 markethub.test`. Изменение hosts и управление системной службой требуют административных прав. Обычный запуск/остановка веб-процессов — нет. Абсолютные пути Nginx находятся в `infra/nginx.conf`.
-
-Локальные настройки:
+PHP-расширения: PDO, pdo_pgsql, pgsql, ctype, curl, dom, fileinfo, filter, hash, intl, mbstring, openssl, session, tokenizer, xml, zip. pdo_sqlite нужен только для разового чтения старой резервной копии при переносе, приложение и тесты его не используют. Node.js для текущего API не требуется.
 
 ```dotenv
-APP_ENV=local
-APP_LOCALE=ru
-DB_CONNECTION=sqlite
-DB_DATABASE=D:/Projects/markethub/database/markethub.sqlite
+APP_URL=http://markethub.test
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=markethub_api_local
+DB_USERNAME=markethub_api
+DB_PASSWORD=<локальный пароль>
 SESSION_DRIVER=file
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 REDIS_CLIENT=predis
+SANCTUM_STATEFUL_DOMAINS=markethub.test,app.markethub.test:5173,localhost:5173
+FRONTEND_URL=http://markethub.test
 ```
 
-## Установка из Git
+Для текущей машины рабочая БД и отдельная тестовая БД уже подготовлены. Пароли находятся в `.env` / `.env.testing`, не в Git. Службы: `markethub-postgresql` и `Memurai`. Их настройки на этапе 4 не менялись, новое ПО не устанавливалось.
 
-При уже установленных PHP, Composer, Node.js, Nginx и Memurai:
+Для другой машины создайте через psql отдельные роли `markethub_api` и `markethub_api_test` с LOGIN, без SUPERUSER/CREATEDB/CREATEROLE; задайте пароли интерактивной командой `\password`. Создайте базы `markethub_api_local OWNER markethub_api` и `markethub_api_test OWNER markethub_api_test`, выполните `REVOKE ALL ON DATABASE <имя> FROM PUBLIC` для обеих. Владельцы могут мигрировать только свою БД; тестовая роль не имеет доступа к рабочей. Пароли вводите только в локальные env-файлы.
 
 ```powershell
 composer install
 Copy-Item .env.example .env
-# Укажите абсолютный DB_DATABASE при нестандартном расположении проекта.
-New-Item -ItemType File database\markethub.sqlite
+# Задайте DB_PASSWORD и APP_KEY локально.
 php artisan key:generate
-php artisan migrate --seed
-npm.cmd ci
-npm.cmd run build
+php artisan migrate
+php artisan db:seed
 ```
 
-Не перезаписывайте существующий SQLite-файл или `.env`. `.env.example` использует стандартный путь `database/markethub.sqlite` через конфигурацию Laravel. Ресурсы Filament восстанавливаются при `composer install` через `filament:upgrade`. Секреты, БД, зависимости и временные файлы не включены в репозиторий.
-
-## Администратор и организации
+## Запуск
 
 ```powershell
-php artisan markethub:admin
+cd D:\Projects\markethub
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\start.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\stop.ps1
 ```
 
-Команда работает только в `local`, запрашивает имя, email и дважды пароль. Ввод скрытый, без передачи пароля в аргументах; нужен интерактивный PowerShell/Windows Terminal. Пароль: минимум 12 символов, заглавные и строчные буквы, цифра и специальный символ. В БД сохраняется хеш. Если скрытый ввод недоступен, команда завершится ошибкой. Существующие пользователи не повышаются до администратора. Публичной регистрации нет.
+Nginx слушает 127.0.0.1:80 и передаёт запросы в `php-cgi.exe` на 127.0.0.1:9000. В hosts должна быть существующая запись `127.0.0.1 markethub.test`. Для управления службами используйте `scripts/services.ps1 -Action Start` / `Stop` в административном PowerShell. Обычные start/stop не требуют повышения прав. PostgreSQL и Memurai должны быть запущены.
 
-У пользователя может быть несколько организаций через `organization_user`. Используется `active_organization_id`, если членство подтверждено; иначе первая организация по ID. Интерфейса переключения пока нет. Без организации администратор видит пустые списки, создание бизнес-записей запрещено. `is_admin` и `active_organization_id` не доступны для массового заполнения.
+Логи: `infra/runtime/logs`, `infra/runtime/php-error.log`, `storage/logs/laravel.log`.
 
-Глобальная область Eloquent ограничивает все бизнес-модели текущей организацией. Без пользователя/организации область возвращает пустой результат. Policies проверяют администратора и активную организацию при просмотре, создании, изменении и удалении. Разрешённые серверные CLI-операции используют явный `withoutGlobalScopes()`; он не должен применяться к пользовательскому вводу.
+## Авторизация и организации
 
-## Демо-данные
+Sanctum использует cookie-сессию Laravel. Браузерному клиенту не выдаются API-токены; таблица Sanctum предусмотрена стандартной миграцией, но endpoint выдачи токенов отсутствует. Публичной регистрации нет.
+
+1. `GET /sanctum/csrf-cookie` с `credentials: include`.
+2. `POST /api/v1/auth/login` с email/password и `X-XSRF-TOKEN` из URL-decoded cookie `XSRF-TOKEN`.
+3. Передавайте cookies и заголовок Origin/Referer доверенного SPA. Для изменяющих запросов передавайте X-XSRF-TOKEN.
+4. `GET /api/v1/auth/me`, `POST /api/v1/auth/logout`.
+
+Лимит входа: 5 попыток в минуту для email/IP и 30 для IP. В production нужны HTTPS, secure cookies и точный список доверенных доменов/CORS. Будущий SPA должен находиться на том же основном домене; настройте FRONTEND_URL, SANCTUM_STATEFUL_DOMAINS и SESSION_DOMAIN для его поддомена. CORS разрешает credentials только FRONTEND_URL, не wildcard.
+
+Локальная команда `php artisan markethub:admin` сохранена, включая пользовательские изменения ввода пароля. Она создаёт пользователя, не предоставляет публичную регистрацию и не изменяет существующие учётные записи. Пользователи получают доступ к API по членству в организации; признак is_admin не заменяет проверку членства. CLI-привязка демо разрешена локальному администратору:
 
 ```powershell
 php artisan db:seed --class=DemoDataSeeder
 php artisan markethub:demo-attach your-admin@example.com
 ```
 
-Вторая команда запрашивает подтверждение, привязывает демокомпанию к существующему локальному администратору и делает её активной. Другие членства не удаляются. Для обычных пользователей и вне `local` команда не выполняет привязку. Создание администратора и подтверждение привязки выполняются пользователем со своими данными, постоянные пароли не засеваются.
+`GET /api/v1/organizations` показывает только доступные организации. `PATCH /api/v1/organizations/active` с organization_id выбирает активную, проверяя членство через связь и Policy. Активный контекст сохраняется для пользователя; без него используется первое действующее членство. Чужие ID дают 404, отсутствие членства запрещает создание (403).
 
-Сидер разрешён только в `local/testing`. Создаёт:
+## API
 
-- Организацию `markethub-demo`.
-- Два подключения: Wildberries и Ozon, `status=demo`, `is_demo=true`.
-- 50 синтетических товаров электроники, аксессуаров и товаров для дома.
-- 100 размещений, разные цены/остатки, неактивные товары и нулевые остатки.
+CRUD: `/api/v1/products`, `/api/v1/marketplace-accounts`, `/api/v1/marketplace-listings` — GET/POST списка, GET/PATCH/DELETE записи. Остатки: `GET /api/v1/stocks`, без отдельной таблицы и без изменяющих маршрутов. Заказы не реализованы.
 
-Названия помечены «демо», SKU начинаются с `DEMO-`, внешние ID — с `SYNTHETIC-`. Это собственные учебные идентификаторы, не реальные ID WB/Ozon. Сидер использует транзакцию и `firstOrCreate`: повторный запуск не создаёт дубликаты и не перезаписывает пользовательские изменения. Пользовательские данные не удаляются. Обычный `db:seed` создаёт только технические записи проверки; демоданные запускаются отдельно.
+Списки: page, per_page (1–100, по умолчанию 20), search, sort, direction. Дополнительные фильтры, тела запросов и ответы: [docs/API.md](docs/API.md). Машиночитаемая спецификация: [docs/openapi.json](docs/openapi.json), OpenAPI 3.0.3, без дополнительных runtime-зависимостей.
 
-## Рабочие разделы
+## PostgreSQL, история миграций и сохранение данных
 
-- **Товары** (`/admin/products`): поиск по названию/SKU, фильтр активности, создание, просмотр, редактирование и удаление.
-- **Маркетплейсы** (`/admin/marketplaces`): подключения, тип, статус, демопризнак, количество размещений и карточка подключения.
-- **Остатки** (`/admin/inventory`): размещения, товар, SKU, подключение, цена, остаток, статус. Фильтры: нулевой остаток и низкий остаток (1–5), подключение.
-- В карточках товара и подключения есть таблица связанных размещений с переходами к просмотру и редактированию.
+Принято решение создать **новую пустую** PostgreSQL-базу для API, а не изменять применённую схему SQLite или старую PostgreSQL-базу `markethub`. На этой ветке миграция `2026_11_10_000002_create_organization_catalog` является новым PostgreSQL-baseline: поля, ключи, индексы через Schema Builder, ограничения значений через ALTER TABLE CHECK PostgreSQL. Не применяйте её к старой SQLite-базе. Добавлена стандартная миграция таблицы Sanctum.
 
-Организация присваивается сервером и не редактируется в формах. SKU уникален внутри организации. Товар может размещаться в нескольких подключениях, в том числе одного маркетплейса. Пара товар/подключение уникальна; непустой внешний ID уникален внутри подключения. Составные внешние ключи SQLite запрещают межорганизационные связи, CHECK-ограничения запрещают отрицательные/дробные цены и остатки даже при прямой записи SQL. Формы и модели дополнительно валидируют данные.
+SQLite `database/markethub.sqlite` сохранён. Согласованная резервная копия и копии пользовательских правок/старого env находятся в `C:\tools\markethub-task4-backup`. Старое состояние схемы остаётся в истории Git (`92217d7`). Рабочая/тестовая PostgreSQL-базы разделены ролями и ACL.
 
-Деньги хранятся как целые минимальные единицы, без float. В формах вводятся основные единицы (например `1234,56`), в таблицах — `1 234,56 RUB`. Поддерживаемые валюты с двумя десятичными знаками: RUB, USD, EUR, BYN, KZT, CNY, GBP. Максимальная цена — `9 999 999 999,99`. Товар или подключение с размещениями нельзя удалить: сначала удалите размещения. Это предотвращает потерю зависимых данных.
+Неразрушающий импорт:
 
-Дашборд считает товары и реальные активные подключения текущей организации. Выручка и заказы остаются нулевыми; демоподключения не выдаются за реальные интеграции. Заказы, продажи, аналитика, API WB/Ozon и синхронизация очередями пока не реализованы. Доступны русский интерфейс, светлая/тёмная/системная темы и адаптивная навигация Filament.
+```powershell
+php artisan migrate
+php artisan markethub:import-sqlite C:\path\to\backup.sqlite
+```
 
-## Проверки
+Команда разрешена только в local/PostgreSQL и отказывается работать при наличии пользователей/бизнес-данных в целевой БД. Источник открывается только для чтения. Перенос транзакционный, сохраняет ID, даты, парольные хеши, членства и активные организации; последовательности PostgreSQL приводятся в соответствие с ID. Подключение к SQLite не входит в runtime-конфигурацию.
+
+На этой машине перенесены: 1 пользователь, 1 организация, 1 действующее членство, 50 товаров, 2 подключения, 100 размещений и 2 технические записи. В исходнике дополнительно была связь user_id=1 с отсутствующим пользователем; она не импортирована, отмечена в отчёте, полностью сохранена в старом файле/резервной копии. Пароль существующего пользователя не изменялся. Рабочие базы не очищались; migrate:fresh/db:wipe на них не выполнялись.
+
+DemoDataSeeder повторяемый: 50 товаров, два демоподключения, 100 размещений; firstOrCreate не перезаписывает изменения пользователя. Внешние ID SYNTHETIC- не выдаются за реальные ID WB/Ozon.
+
+## Тесты
+
+Создайте `.env.testing` из `.env.example`, задайте `APP_ENV=testing`, `DB_DATABASE=markethub_api_test`, `DB_USERNAME=markethub_api_test` и отдельный DB_PASSWORD. Тестовая роль не должна иметь CONNECT к рабочей БД.
 
 ```powershell
 php artisan test
 php vendor/bin/pint --test
+composer validate --strict
 composer check-platform-reqs
-Invoke-RestMethod http://markethub.test/api/system-checks
 ```
 
-Тесты используют SQLite `:memory:` и не затрагивают локальные пользовательские данные. Проверяются вход/выход и права панели, пустые состояния, создание/редактирование товаров и размещений, поиск/фильтры, точная арифметика денег, уникальность SKU и внешних ID, запрет отрицательных значений, изоляция организаций, SQL-ограничения, зависимости удаления, повторяемый демосидер и подтверждение привязки.
+Тесты работают **только на PostgreSQL**. Защитная проверка в `Tests\TestCase` прекращает запуск до миграций, если драйвер не pgsql или имя базы не заканчивается `_test`. RefreshDatabase пересоздаёт исключительно изолированную тестовую схему. Проверяются auth, CSRF, rate limit, CRUD, фильтры/поиск/пагинация, ограничения цены/остатков, IDOR, членство, составные внешние ключи, отсутствие N+1 и повторяемость демосидера.
 
-`/api/system-checks` возвращает две технические записи из активной SQLite-базы. Бизнес-API пока нет. Логи: `infra/runtime/logs/error.log`, `infra/runtime/logs/access.log`, `infra/runtime/php-error.log`, `storage/logs/laravel.log`. Настройки системной службы Memurai на этапах 2 и 3 не менялись.
+В HTTP-проверке через Nginx проверены реальные cookies/CSRF, login/me/logout, полный CRUD трёх ресурсов и остатки. Созданные проверкой временные записи и пользователь удалены. Настройки системного Memurai не менялись, запись/чтение кэша проверены.

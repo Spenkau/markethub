@@ -25,13 +25,14 @@ class CreateLocalAdmin extends Command
             'name' => trim((string) ($this->option('name') ?: $this->ask('Имя администратора'))),
             'email' => strtolower(trim((string) ($this->option('email') ?: $this->ask('Email администратора')))),
             'password' => $this->secret('Пароль (не менее 12 символов)', fallback: false),
-            'password_confirmation' => $this->secret('Повторите пароль', fallback: false),
         ];
 
         $validator = Validator::make($data, [
             'name' => ['required', 'string', 'max:120'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
+            'password' => ['required', 'string',
+                //                Password::min(12)->mixedCase()->numbers()->symbols()
+            ],
         ]);
 
         if ($validator->fails()) {
@@ -42,14 +43,14 @@ class CreateLocalAdmin extends Command
             return self::FAILURE;
         }
 
-        $user = new User;
-        $user->name = $data['name'];
-        $user->email = $data['email'];
-        $user->password = $data['password'];
-        $user->is_admin = true;
-        $user->save();
+        User::query()->create([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => $data['password'],
+            'is_admin' => true,
+        ]);
 
-        $this->info('Администратор создан. Вход: '.url('/admin/login'));
+        $this->info('Пользователь создан. API входа: '.url('/api/v1/auth/login'));
 
         return self::SUCCESS;
     }

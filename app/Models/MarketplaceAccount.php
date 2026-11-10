@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
+use App\Exceptions\DependentRecordsException;
 use App\Models\Concerns\BelongsToOrganization;
+use App\Support\CatalogRules;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class MarketplaceAccount extends Model
 {
@@ -33,19 +33,14 @@ class MarketplaceAccount extends Model
     protected function validateBusinessRules(): void
     {
         $this->name = trim((string) $this->name);
-        Validator::make($this->getAttributes(), [
-            'name' => ['required', 'string', 'max:255'],
-            'marketplace' => ['required', Rule::in(array_keys(self::MARKETPLACES))],
-            'status' => ['required', Rule::in(array_keys(self::STATUSES))],
-            'is_demo' => ['required', 'boolean'],
-        ])->validate();
+        Validator::make($this->getAttributes(), CatalogRules::account())->validate();
     }
 
     protected static function booted(): void
     {
         static::deleting(function (MarketplaceAccount $account): void {
             if (MarketplaceListing::withoutGlobalScopes()->where('marketplace_account_id', $account->id)->exists()) {
-                throw ValidationException::withMessages(['account' => 'Сначала удалите размещения подключения.']);
+                throw new DependentRecordsException('Сначала удалите размещения подключения.');
             }
         });
     }

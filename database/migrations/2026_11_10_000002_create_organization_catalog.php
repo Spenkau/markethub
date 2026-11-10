@@ -23,48 +23,53 @@ return new class extends Migration
         Schema::table('users', function (Blueprint $table): void {
             $table->foreignId('active_organization_id')->nullable()->constrained('organizations')->nullOnDelete();
         });
-
-        // SQLite CHECK constraints and composite foreign keys also protect direct SQL writes.
-        DB::statement("CREATE TABLE marketplace_accounts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
-            marketplace VARCHAR(20) NOT NULL CHECK (marketplace IN ('wildberries','ozon')),
-            name VARCHAR(255) NOT NULL CHECK (length(trim(name)) > 0),
-            status VARCHAR(20) NOT NULL CHECK (status IN ('demo','active','disabled')),
-            is_demo BOOLEAN NOT NULL DEFAULT 0,
-            created_at DATETIME, updated_at DATETIME,
-            UNIQUE (organization_id, id)
-        )");
-        DB::statement("CREATE TABLE products (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
-            sku VARCHAR(100) NOT NULL CHECK (length(trim(sku)) > 0),
-            name VARCHAR(255) NOT NULL CHECK (length(trim(name)) > 0),
-            description TEXT,
-            base_price_minor INTEGER NOT NULL CHECK (typeof(base_price_minor) = 'integer' AND base_price_minor BETWEEN 0 AND 999999999999),
-            currency VARCHAR(3) NOT NULL CHECK (currency IN ('RUB','USD','EUR','BYN','KZT','CNY','GBP')),
-            is_active BOOLEAN NOT NULL DEFAULT 1,
-            created_at DATETIME, updated_at DATETIME,
-            UNIQUE (organization_id, sku), UNIQUE (organization_id, id)
-        )");
-        DB::statement("CREATE TABLE marketplace_listings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            organization_id INTEGER NOT NULL REFERENCES organizations(id) ON DELETE RESTRICT,
-            product_id INTEGER NOT NULL,
-            marketplace_account_id INTEGER NOT NULL,
-            external_id VARCHAR(255), external_sku VARCHAR(255),
-            price_minor INTEGER NOT NULL CHECK (typeof(price_minor) = 'integer' AND price_minor BETWEEN 0 AND 999999999999),
-            currency VARCHAR(3) NOT NULL CHECK (currency IN ('RUB','USD','EUR','BYN','KZT','CNY','GBP')),
-            stock_quantity INTEGER NOT NULL CHECK (typeof(stock_quantity) = 'integer' AND stock_quantity BETWEEN 0 AND 2147483647),
-            status VARCHAR(20) NOT NULL CHECK (status IN ('active','inactive')),
-            created_at DATETIME, updated_at DATETIME,
-            UNIQUE (product_id, marketplace_account_id),
-            UNIQUE (marketplace_account_id, external_id),
-            FOREIGN KEY (organization_id, product_id) REFERENCES products(organization_id, id) ON DELETE RESTRICT,
-            FOREIGN KEY (organization_id, marketplace_account_id) REFERENCES marketplace_accounts(organization_id, id) ON DELETE RESTRICT
-        )");
-        DB::statement('CREATE INDEX listings_organization_stock ON marketplace_listings (organization_id, stock_quantity)');
-        DB::statement('CREATE INDEX accounts_organization ON marketplace_accounts (organization_id)');
+        Schema::create('marketplace_accounts', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('organization_id')->constrained()->restrictOnDelete();
+            $table->string('marketplace', 20);
+            $table->string('name');
+            $table->string('status', 20);
+            $table->boolean('is_demo')->default(false);
+            $table->timestamps();
+            $table->unique(['organization_id', 'id'], 'accounts_org_id_unique');
+        });
+        Schema::create('products', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('organization_id')->constrained()->restrictOnDelete();
+            $table->string('sku', 100);
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->bigInteger('base_price_minor');
+            $table->char('currency', 3);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->unique(['organization_id', 'sku']);
+            $table->unique(['organization_id', 'id'], 'products_org_id_unique');
+        });
+        Schema::create('marketplace_listings', function (Blueprint $table): void {
+            $table->id();
+            $table->foreignId('organization_id')->constrained()->restrictOnDelete();
+            $table->foreignId('product_id');
+            $table->foreignId('marketplace_account_id');
+            $table->string('external_id')->nullable();
+            $table->string('external_sku')->nullable();
+            $table->bigInteger('price_minor');
+            $table->char('currency', 3);
+            $table->integer('stock_quantity');
+            $table->string('status', 20);
+            $table->timestamps();
+            $table->unique(['product_id', 'marketplace_account_id'], 'listing_product_account_unique');
+            $table->unique(['marketplace_account_id', 'external_id'], 'listing_account_external_unique');
+            $table->foreign(['organization_id', 'product_id'], 'listing_product_org_fk')->references(['organization_id', 'id'])->on('products')->restrictOnDelete();
+            $table->foreign(['organization_id', 'marketplace_account_id'], 'listing_account_org_fk')->references(['organization_id', 'id'])->on('marketplace_accounts')->restrictOnDelete();
+            $table->index(['organization_id', 'stock_quantity']);
+        });
+        DB::statement('ALTER TABLE products ADD CONSTRAINT products_price_check CHECK (base_price_minor BETWEEN 0 AND 999999999999)');
+        DB::statement('ALTER TABLE products ADD CONSTRAINT products_name_check CHECK (length(trim(name)) > 0 AND length(trim(sku)) > 0)');
+        DB::statement("ALTER TABLE products ADD CONSTRAINT products_currency_check CHECK (currency IN ('RUB','USD','EUR','BYN','KZT','CNY','GBP'))");
+        DB::statement("ALTER TABLE marketplace_accounts ADD CONSTRAINT accounts_values_check CHECK (marketplace IN ('wildberries','ozon') AND status IN ('demo','active','disabled') AND length(trim(name)) > 0)");
+        DB::statement("ALTER TABLE marketplace_listings ADD CONSTRAINT listings_values_check CHECK (price_minor BETWEEN 0 AND 999999999999 AND stock_quantity >= 0 AND status IN ('active','inactive'))");
+        DB::statement("ALTER TABLE marketplace_listings ADD CONSTRAINT listings_currency_check CHECK (currency IN ('RUB','USD','EUR','BYN','KZT','CNY','GBP'))");
     }
 
     public function down(): void
@@ -72,10 +77,8 @@ return new class extends Migration
         Schema::dropIfExists('marketplace_listings');
         Schema::dropIfExists('products');
         Schema::dropIfExists('marketplace_accounts');
+        Schema::table('users', fn (Blueprint $table) => $table->dropConstrainedForeignId('active_organization_id'));
         Schema::dropIfExists('organization_user');
-        Schema::table('users', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('active_organization_id');
-        });
         Schema::dropIfExists('organizations');
     }
 };

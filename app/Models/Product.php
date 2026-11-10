@@ -2,14 +2,13 @@
 
 namespace App\Models;
 
+use App\Exceptions\DependentRecordsException;
 use App\Models\Concerns\BelongsToOrganization;
-use App\Support\Money;
+use App\Support\CatalogRules;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 
 class Product extends Model
 {
@@ -31,21 +30,14 @@ class Product extends Model
     {
         $this->sku = trim((string) $this->sku);
         $this->name = trim((string) $this->name);
-        Validator::make($this->getAttributes(), [
-            'sku' => ['required', 'string', 'max:100', Rule::unique('products')->where('organization_id', $this->organization_id)->ignore($this->id)],
-            'name' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'base_price_minor' => ['required', 'integer', 'min:0', 'max:999999999999'],
-            'currency' => ['required', Rule::in(array_keys(Money::CURRENCIES))],
-            'is_active' => ['required', 'boolean'],
-        ])->validate();
+        Validator::make($this->getAttributes(), CatalogRules::product((int) $this->organization_id, $this->id))->validate();
     }
 
     protected static function booted(): void
     {
         static::deleting(function (Product $product): void {
             if (MarketplaceListing::withoutGlobalScopes()->where('product_id', $product->id)->exists()) {
-                throw ValidationException::withMessages(['product' => 'Сначала удалите размещения товара.']);
+                throw new DependentRecordsException('Сначала удалите размещения товара.');
             }
         });
     }
