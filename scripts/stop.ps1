@@ -7,7 +7,7 @@ if (Test-Path $pidFile) {
     $nginxId = [int](Get-Content $pidFile -Raw).Trim()
     $process = Get-Process -Id $nginxId -ErrorAction SilentlyContinue
     if ($process -and $process.Path -eq $nginx) {
-        & $nginx -p ($runtime.Replace('\', '/') + '/') -c (Join-Path $projectRoot 'infra\nginx.conf') -s quit
+        & $nginx -p ($runtime.Replace('\', '/') + '/') -c (Join-Path $projectRoot 'infra\nginx-spa.conf') -s quit
         if ($LASTEXITCODE -ne 0) { throw 'Could not stop nginx.' }
         $process | Wait-Process -Timeout 15
     }

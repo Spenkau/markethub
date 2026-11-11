@@ -2,7 +2,7 @@
 
 Laravel 13.40 / PHP 8.3, PostgreSQL 17, Sanctum, Predis/Memurai. Ветка: `refactor/api-first-postgresql`.
 
-Приложение предоставляет JSON REST API `/api/v1`. Серверной административной панели и frontend-приложения нет. Корень `/` возвращает статус и версию API. `GET /up` — стандартная проверка Laravel. Совместимый технический `GET /api/system-checks` сохранён; он не предоставляет бизнес-данные.
+Приложение предоставляет JSON REST API `/api/v1`. Собственный Vue 3 SPA находится в `frontend/`: [запуск, страницы, API и Nginx](frontend/README.md). Серверной административной панели нет. С исходным backend-конфигом Nginx корень `/` возвращает статус и версию API; отдельный `infra/nginx-spa.conf` предназначен для собранного SPA. `GET /up` — стандартная проверка Laravel. Совместимый технический `GET /api/system-checks` сохранён; он не предоставляет бизнес-данные.
 
 ## Архитектура
 
@@ -19,7 +19,7 @@ Laravel 13.40 / PHP 8.3, PostgreSQL 17, Sanctum, Predis/Memurai. Ветка: `re
 
 Windows, без Docker/WSL. PHP: `C:\tools\php83`, Nginx: `C:\tools\nginx-1.30.6`, PostgreSQL: `C:\Program Files\PostgreSQL\17`, Memurai: `C:\Program Files\Memurai`.
 
-PHP-расширения: PDO, pdo_pgsql, pgsql, ctype, curl, dom, fileinfo, filter, hash, intl, mbstring, openssl, session, tokenizer, xml, zip. pdo_sqlite нужен только для разового чтения старой резервной копии при переносе, приложение и тесты его не используют. Node.js для текущего API не требуется.
+PHP-расширения: PDO, pdo_pgsql, pgsql, ctype, curl, dom, fileinfo, filter, hash, intl, mbstring, openssl, session, tokenizer, xml, zip. pdo_sqlite нужен только для разового чтения старой резервной копии при переносе, приложение и тесты его не используют. Для API Node.js не требуется; для разработки и сборки SPA нужен Node.js 22.12+ и npm.
 
 ```dotenv
 APP_URL=http://markethub.test
@@ -51,6 +51,8 @@ php artisan db:seed
 ```
 
 ## Запуск
+
+Основной адрес сайта — **http://markethub.test**. Обычный `scripts/start.ps1` использует `infra/nginx-spa.conf` и отдаёт собранный Vue SPA вместе с Laravel API. Vite для этого не нужен. Перед первым запуском выполните `npm.cmd ci` и `npm.cmd run build` в `frontend/`; повторяйте сборку после изменений frontend. Флаг `-BackendOnly` запускает исходный API-конфиг.
 
 ```powershell
 cd D:\Projects\markethub

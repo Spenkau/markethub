@@ -1,9 +1,15 @@
+param([switch]$BackendOnly)
+
 $ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path $PSScriptRoot -Parent
 $runtime = Join-Path $projectRoot 'infra\runtime'
 $php = 'C:\tools\php83\php-cgi.exe'
 $nginx = 'C:\tools\nginx-1.30.6\nginx.exe'
-$config = Join-Path $projectRoot 'infra\nginx.conf'
+$configName = if ($BackendOnly) { 'nginx.conf' } else { 'nginx-spa.conf' }
+$config = Join-Path $projectRoot ('infra\' + $configName)
+if (-not $BackendOnly -and -not (Test-Path (Join-Path $projectRoot 'frontend\dist\index.html'))) {
+    throw 'Frontend build is missing. Run: cd frontend; npm.cmd ci; npm.cmd run build'
+}
 New-Item -ItemType Directory (Join-Path $runtime 'logs') -Force | Out-Null
 New-Item -ItemType Directory (Join-Path $runtime 'temp') -Force | Out-Null
 $prefix = $runtime.Replace('\', '/') + '/'

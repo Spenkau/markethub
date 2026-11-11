@@ -15,4 +15,5 @@ class OrganizationContext
 
         return $id === null ? null : (int) $id;
     }
+
 }
