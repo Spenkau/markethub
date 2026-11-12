@@ -61,6 +61,21 @@ export const router = createRouter({
                     meta: { title: 'Маркетплейсы' },
                 },
                 {
+                    path: 'marketplaces/shopify/new',
+                    redirect: '/app/marketplaces?connect=shopify',
+                    meta: { title: 'Подключить Shopify' },
+                },
+                {
+                    path: 'marketplaces/shopify/:id/products/:listing',
+                    component: () => import('../pages/ShopifyProductPage.vue'),
+                    meta: { title: 'Товар Shopify' },
+                },
+                {
+                    path: 'marketplaces/shopify/:id',
+                    component: () => import('../pages/ShopifyPage.vue'),
+                    meta: { title: 'Shopify' },
+                },
+                {
                     path: 'marketplace-stocks',
                     component: () => import('../pages/MarketplaceStocksPage.vue'),
                     meta: { title: 'Остатки маркетплейсов' },

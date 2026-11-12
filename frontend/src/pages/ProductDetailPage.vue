@@ -46,6 +46,28 @@ onMounted(load);
                     >Создать закупку с товаром</RouterLink
                 >
             </div>
+            <section v-if="product.shopify_listings?.length" class="panel section-card">
+                <h2>Размещения Shopify</h2>
+                <article v-for="listing in product.shopify_listings" :key="listing.id">
+                    <RouterLink
+                        :to="`/app/marketplaces/shopify/${listing.account_id}?tab=products`"
+                        >{{ listing.account_name }}</RouterLink
+                    >
+                    <p>
+                        {{ money(listing.price_minor, listing.currency) }} ? {{ listing.status }} ?
+                        обновлено
+                        {{
+                            listing.synced_at
+                                ? new Date(listing.synced_at).toLocaleString('ru-RU')
+                                : '?'
+                        }}
+                    </p>
+                    <RouterLink
+                        :to="`/app/marketplaces/shopify/${listing.account_id}?tab=inventory&product_id=${product.id}`"
+                        >Внешние остатки Shopify →</RouterLink
+                    >
+                </article>
+            </section>
             <section class="panel detail-panel">
                 <span class="badge" :class="product.is_active ? 'success' : ''">{{
                     product.is_active ? 'Активен' : 'Неактивен'

@@ -21,7 +21,7 @@ class DemoDataSeeder extends Seeder
         Model::unguarded(fn () => DB::transaction(function (): void {
             $organization = Organization::firstOrCreate(['slug' => 'markethub-demo'], ['name' => 'MarketHub — демонстрационная компания']);
             $accounts = [];
-            foreach (MarketplaceAccount::MARKETPLACES as $code => $label) {
+            foreach (array_intersect_key(MarketplaceAccount::MARKETPLACES, array_flip(['wildberries', 'ozon'])) as $code => $label) {
                 $accounts[$code] = MarketplaceAccount::withoutGlobalScopes()->firstOrCreate([
                     'organization_id' => $organization->id, 'marketplace' => $code, 'name' => $label.' — демо', 'is_demo' => true,
                 ], ['status' => 'demo']);

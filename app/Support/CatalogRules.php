@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\MarketplaceAccount;
+use App\Services\Marketplaces\ProviderRegistry;
 use Illuminate\Validation\Rule;
 
 class CatalogRules
@@ -23,7 +24,7 @@ class CatalogRules
     {
         return [
             'name' => ['required', 'string', 'max:255'],
-            'marketplace' => ['required', Rule::in(array_keys(MarketplaceAccount::MARKETPLACES))],
+            'marketplace' => ['required', Rule::in(app(ProviderRegistry::class)->codes())],
             'status' => ['required', Rule::in(array_keys(MarketplaceAccount::STATUSES))],
             'is_demo' => ['required', 'boolean'],
         ];

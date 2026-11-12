@@ -136,4 +136,13 @@ composer check-platform-reqs
 
 ## Пользовательский путь и обучение
 
-На обзоре добавлен реальный чек-лист начала работы, а разделы связаны переходами с выбранным товаром/поставщиком/складом. «Помощь и обучение» — `/app/help`. Шесть экскурсий задаются в `frontend/src/features/onboarding/config/tours.ts`, прогресс и настройки сохраняются персонально через Sanctum. Установка: `php artisan migrate`, затем сборка frontend. Подробная инструкция добавления сценария, поведение и endpoints: [ONBOARDING.md](docs/ONBOARDING.md).
+На обзоре добавлен реальный чек-лист начала работы, а разделы связаны переходами с выбранным товаром/поставщиком/складом. «Помощь и обучение» — `/app/help`. Семь экскурсий задаются в `frontend/src/features/onboarding/config/tours.ts`, прогресс и настройки сохраняются персонально через Sanctum. Установка: `php artisan migrate`, затем сборка frontend. Подробная инструкция добавления сценария, поведение и endpoints: [ONBOARDING.md](docs/ONBOARDING.md).
+
+## Shopify
+
+Реальная односторонняя интеграция Shopify → MarketHub: товары, варианты, локации и внешние остатки, ручной и автоматический импорт, история и обучение. После подтверждённого первого импорта по умолчанию обновляется каждый час при работающих Redis, worker и Scheduler. [Устройство, API, запуск на Windows и результаты проверки](docs/SHOPIFY.md).
+
+Единый backend-фундамент подключений, внешний parent/variant, encrypted credentials и безопасный backfill реализованы в TASK8: [описание и проверка сохранности](docs/architecture/marketplace-foundation-task8.md).
+
+
+Общая синхронизация, recovery и проверка миграции: [TASK9](docs/architecture/marketplace-sync-task9.md). Windows worker: `scripts/marketplace-workers.ps1`; проверка окружения: `php artisan marketplaces:sync-runtime`.

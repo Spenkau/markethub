@@ -37,7 +37,9 @@ class CatalogExport extends DefaultValueBinder implements FromQuery, WithColumnF
         $dates = [Date::dateTimeToExcel($row->created_at), Date::dateTimeToExcel($row->updated_at)];
 
         return $this->stocks
-            ? [$row->id, $row->product?->name, $row->product?->sku, $row->marketplaceAccount?->marketplace === 'ozon' ? 'Ozon' : 'Wildberries', $row->marketplaceAccount?->name, $row->external_id, $row->external_sku, $row->stock_quantity, $row->price_minor / 100, $row->currency, $row->status === 'active' ? 'Активно' : 'Неактивно', ...$dates]
+            ? [$row->id, $row->product?->name ?? $row->marketplaceProduct?->title, $row->product?->sku ?? $row->external_sku, match ($row->marketplaceAccount?->marketplace) {
+                'shopify' => 'Shopify', 'ozon' => 'Ozon', default => 'Wildberries'
+            }, $row->marketplaceAccount?->name, $row->external_id, $row->external_sku, $row->stock_quantity, $row->price_minor / 100, $row->currency, $row->status === 'active' ? 'Активно' : 'Неактивно', ...$dates]
             : [$row->id, $row->name, $row->sku, $row->description, $row->base_price_minor / 100, $row->currency, $row->is_active ? 'Активен' : 'Неактивен', $row->listings_count, ...$dates];
     }
 

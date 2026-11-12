@@ -4,6 +4,8 @@ import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Search, Plus, Pencil, Trash2, Package as PackageIcon } from 'lucide-vue-next';
 import { productsApi } from '../api/products';
+import { marketplacesApi } from '../api/marketplaces';
+import type { MarketplaceAccount } from '../types';
 import { downloadExcel } from '../api/exports';
 import { message } from '../api/client';
 import { shortDate } from '../utils/date';
@@ -11,6 +13,19 @@ import { money } from '../utils/money';
 import type { Page, Product } from '../types';
 import PageState from '../components/ui/PageState.vue';
 import PaginationBar from '../components/ui/PaginationBar.vue';
+const accounts = ref<MarketplaceAccount[]>([]);
+const channel = ref(String(useRoute().query.marketplace || ''));
+const connection = ref(String(useRoute().query.marketplace_account_id || ''));
+onMounted(async () => {
+    let page = 1;
+    let last = 1;
+    do {
+        const response = await marketplacesApi.list({ page, per_page: 100 });
+        accounts.value.push(...response.data);
+        last = response.meta.last_page;
+        page++;
+    } while (page <= last);
+});
 const route = useRoute(),
     search = ref(''),
     active = ref(String(route.query.is_active || '')),
@@ -43,6 +58,8 @@ const exporting = ref(false),
 function filters() {
     return {
         search: search.value || undefined,
+        marketplace: channel.value || undefined,
+        marketplace_account_id: connection.value || undefined,
         is_active: active.value || undefined,
         sort: sort.value,
         direction: direction.value,
@@ -84,10 +101,12 @@ const pageActive = computed(() => result.value?.data.filter((p) => p.is_active).
 function resetFilters() {
     search.value = '';
     active.value = '';
+    channel.value = '';
+    connection.value = '';
     sort.value = 'id';
     direction.value = 'asc';
 }
-watch([search, active, sort, direction, perPage], () => {
+watch([search, active, sort, direction, perPage, channel, connection], () => {
     page.value = 1;
     clearTimeout(timer);
     timer = setTimeout(load, 300);
@@ -131,6 +150,17 @@ async function remove() {
         >
     </div>
     <TourLauncher tour-id="products" />
+    <div class="toolbar">
+        <select v-model="channel" aria-label="Источник товара">
+            <option value="">Все площадки</option>
+            <option value="shopify">Shopify</option>
+            <option value="ozon">Ozon</option>
+            <option value="wildberries">Wildberries</option></select
+        ><select v-model="connection" aria-label="Подключение Shopify">
+            <option value="">Все подключения</option>
+            <option v-for="a in accounts" :key="a.id" :value="a.id">{{ a.name }}</option>
+        </select>
+    </div>
     <p v-if="exportError" class="alert" role="alert">{{ exportError }}</p>
     <div class="list-summary">
         <div>
@@ -224,6 +254,19 @@ async function remove() {
                                     ><span class="product-icon"><PackageIcon /></span
                                     >{{ product.name }}</RouterLink
                                 >
+                                <p
+                                    v-for="listing in product.shopify_listings"
+                                    :key="listing.id"
+                                    class="fine-print"
+                                >
+                                    <RouterLink
+                                        :to="`/app/marketplaces/shopify/${listing.account_id}?tab=products`"
+                                        >Shopify ? {{ listing.account_name }}</RouterLink
+                                    >
+                                    ? {{ money(listing.price_minor, listing.currency) }} ?
+                                    {{ listing.status }} ?
+                                    {{ shortDate(listing.synced_at ?? undefined) }}
+                                </p>
                             </td>
                             <td class="mono muted">
                                 {{ product.sku }}

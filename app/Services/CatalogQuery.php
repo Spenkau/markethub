@@ -33,7 +33,17 @@ class CatalogQuery
 
     public function productQuery(IndexRequest $request): Builder
     {
-        $query = Product::query()->withCount('listings');
+        $query = Product::query()->withCount('listings')->with(['listings' => fn ($q) => $q->where('origin', 'imported')->with(['marketplaceAccount', 'marketplaceProduct'])]);
+        if ($request->filled('marketplace') || $request->filled('marketplace_account_id')) {
+            $query->whereHas('listings', function ($q) use ($request) {
+                if ($request->filled('marketplace_account_id')) {
+                    $q->where('marketplace_account_id', $request->integer('marketplace_account_id'));
+                }
+                if ($request->filled('marketplace')) {
+                    $q->whereHas('marketplaceAccount', fn ($a) => $a->where('marketplace', $request->validated('marketplace')));
+                }
+            });
+        }
         if ($request->filled('search')) {
             $query->where(fn ($query) => $query->where('name', 'ilike', '%'.$request->validated('search').'%')->orWhere('sku', 'ilike', '%'.$request->validated('search').'%'));
         }
@@ -44,9 +54,9 @@ class CatalogQuery
         return $this->sorted($query, $request, ['id' => 'id', 'name' => 'name', 'sku' => 'sku', 'price_minor' => 'base_price_minor', 'created_at' => 'created_at']);
     }
 
-    public function listingQuery(IndexRequest $request): Builder
+    public function listingQuery(IndexRequest $request, bool $includeSources = false): Builder
     {
-        $query = MarketplaceListing::query()->with(['product', 'marketplaceAccount']);
+        $query = MarketplaceListing::query()->with(['product', 'marketplaceAccount', 'marketplaceProduct']);
         foreach (['product_id', 'marketplace_account_id', 'status'] as $field) {
             if ($request->has($field)) {
                 $query->where($field, $request->validated($field));
@@ -54,10 +64,16 @@ class CatalogQuery
         }
         if ($request->filled('search')) {
             $query->where(fn ($query) => $query->whereHas('product', fn ($query) => $query->where('name', 'ilike', '%'.$request->validated('search').'%')->orWhere('sku', 'ilike', '%'.$request->validated('search').'%'))
-                ->orWhere('external_id', 'ilike', '%'.$request->validated('search').'%'));
+                ->orWhereHas('marketplaceProduct', fn ($p) => $p->where('title', 'ilike', '%'.$request->validated('search').'%'))->orWhere('external_sku', 'ilike', '%'.$request->validated('search').'%')->orWhere('barcode', 'ilike', '%'.$request->validated('search').'%')->orWhere('external_id', 'ilike', '%'.$request->validated('search').'%'));
         }
         if ($request->has('marketplace')) {
             $query->whereHas('marketplaceAccount', fn ($query) => $query->where('marketplace', $request->validated('marketplace')));
+        }
+        if ($request->filled('mapping')) {
+            $request->validated('mapping') === 'unmapped' ? $query->whereNull('product_id') : $query->whereNotNull('product_id');
+        }
+        if ($request->filled('origin')) {
+            $query->where('origin', $request->validated('origin'));
         }
         if ($request->validated('stock') === 'zero') {
             $query->where('stock_quantity', 0);

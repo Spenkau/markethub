@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Api\V1;
 
 use App\Models\MarketplaceAccount;
-use App\Support\CatalogRules;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 
@@ -16,6 +15,6 @@ class MarketplaceAccountRequest extends FormRequest
 
     public function rules(): array
     {
-        return CatalogRules::forPatch(CatalogRules::account(), $this->isMethod('PATCH'));
+        return [];
     }
 }

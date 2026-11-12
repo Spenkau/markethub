@@ -127,3 +127,15 @@ Endpoints `/suppliers`, `/purchase-orders`, `/goods-receipts` под `/api/v1` �
 ## Обучение и реальный чек-лист
 
 `GET /api/v1/onboarding`, `GET /api/v1/onboarding/checklist`, `PATCH /api/v1/onboarding/preferences`, `PATCH /api/v1/onboarding/tours/{tour}`. Прогресс относится к пользователю и версии, а чек-лист читает данные текущей организации. Добавлен `POST /api/v1/organizations` с name/request_id для выполнения первого этапа. Полный контракт и правила автоматических предложений: [ONBOARDING.md](ONBOARDING.md), схемы: [openapi.json](openapi.json).
+# Shopify
+
+Endpoints интеграции, настройки, схема данных и фоновое выполнение описаны в [SHOPIFY.md](SHOPIFY.md). Префикс: `/api/v1/shopify/connections`; авторизация Sanctum и изоляция активной организации обязательны.
+
+## Единый фундамент площадок (TASK8)
+
+Общий CRUD подключений поддерживает provider-aware configuration и write-only credentials. Добавлены `/marketplace-providers`, check/disconnect и mapping/local-product actions общего API. Нормализованные внешние родители/варианты, миграция и результаты проверки: [marketplace-foundation-task8.md](architecture/marketplace-foundation-task8.md).
+
+
+## Общая синхронизация площадок (TASK9)
+
+Общие sync, sync-runs, sync-status и listing refresh endpoints, параметры и ограничения описаны в [отчёте TASK9](architecture/marketplace-sync-task9.md). Legacy Shopify API использует ту же историю.

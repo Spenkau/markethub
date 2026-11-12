@@ -17,7 +17,12 @@ class MarketplaceListing extends Model
 
     protected function casts(): array
     {
-        return ['price_minor' => 'integer', 'stock_quantity' => 'integer'];
+        return ['price_minor' => 'integer', 'stock_quantity' => 'integer', 'source_data' => 'array', 'source_synced_at' => 'immutable_datetime', 'source_created_at' => 'immutable_datetime', 'source_updated_at' => 'immutable_datetime'];
+    }
+
+    public function marketplaceProduct(): BelongsTo
+    {
+        return $this->belongsTo(MarketplaceProduct::class);
     }
 
     public function product(): BelongsTo
@@ -28,6 +33,16 @@ class MarketplaceListing extends Model
     public function marketplaceAccount(): BelongsTo
     {
         return $this->belongsTo(MarketplaceAccount::class);
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (MarketplaceListing $listing) {
+            if (! $listing->origin) {
+                $demo = MarketplaceAccount::withoutGlobalScopes()->where('organization_id', $listing->organization_id)->whereKey($listing->marketplace_account_id)->value('is_demo');
+                $listing->origin = $demo ? 'demo' : 'local';
+            }
+        });
     }
 
     protected function validateBusinessRules(): void

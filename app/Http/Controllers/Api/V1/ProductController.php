@@ -28,7 +28,7 @@ class ProductController extends Controller
     {
         Gate::authorize('view', $product);
 
-        return new ProductResource($product->loadCount('listings'));
+        return new ProductResource($product->loadCount('listings')->load(['listings' => fn ($q) => $q->where('origin', 'imported')->with('marketplaceAccount')]));
     }
 
     public function update(ProductRequest $request, Product $product): ProductResource

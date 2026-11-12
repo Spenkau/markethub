@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import TourLauncher from '../features/onboarding/components/TourLauncher.vue';
 import { ref, reactive, onMounted, watch, onBeforeUnmount } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { Plus, Pencil, Store, Search, ArrowUpRight } from 'lucide-vue-next';
 import { shortDate } from '../utils/date';
 import { marketplacesApi } from '../api/marketplaces';
@@ -9,9 +10,13 @@ import type { Page, MarketplaceAccount, AccountInput } from '../types';
 import PageState from '../components/ui/PageState.vue';
 import PaginationBar from '../components/ui/PaginationBar.vue';
 import FieldError from '../components/ui/FieldError.vue';
+import { shopifyApi } from '../api/shopify';
+const router = useRouter();
+const route = useRoute();
+const credentials = reactive({ shop_domain: '', client_id: '', client_secret: '' });
 const channelCounts = ref<number[]>([]);
 const search = ref(''),
-    marketplace = ref(''),
+    marketplace = ref(String(useRoute().query.marketplace || '')),
     accountStatus = ref(''),
     mode = ref(''),
     sort = ref('id');
@@ -83,6 +88,10 @@ async function loadChannelCounts() {
 onMounted(() => {
     void load();
     void loadChannelCounts();
+    if (route.query.connect === 'shopify') {
+        edit();
+        form.marketplace = 'shopify';
+    }
 });
 async function changePage(value: number) {
     page.value = value;
@@ -101,6 +110,7 @@ function edit(account?: MarketplaceAccount) {
               }
             : { name: '', marketplace: 'ozon', status: 'demo', is_demo: true },
     );
+    Object.assign(credentials, { shop_domain: '', client_id: '', client_secret: '' });
     fields.value = {};
     saveError.value = '';
     modal.value = true;
@@ -112,6 +122,13 @@ async function save() {
     fields.value = {};
     try {
         await csrf();
+        if (form.marketplace === 'shopify') {
+            const account = await shopifyApi.create({ name: form.name, ...credentials });
+            modal.value = false;
+            Object.assign(credentials, { shop_domain: '', client_id: '', client_secret: '' });
+            await router.push(`/app/marketplaces/shopify/${account.id}`);
+            return;
+        }
         await marketplacesApi.save({ ...form }, id.value);
         modal.value = false;
         await Promise.all([load(), loadChannelCounts()]);
@@ -168,7 +185,8 @@ async function save() {
             <select v-model="marketplace" aria-label="Маркетплейс">
                 <option value="">Все маркетплейсы</option>
                 <option value="ozon">Ozon</option>
-                <option value="wildberries">Wildberries</option></select
+                <option value="wildberries">Wildberries</option>
+                <option value="shopify">Shopify</option></select
             ><select v-model="accountStatus" aria-label="Фильтр статуса">
                 <option value="">Все статусы</option>
                 <option value="active">Активные</option>
@@ -196,14 +214,28 @@ async function save() {
             <article v-for="account in result?.data" :key="account.id" class="panel account-card">
                 <div class="account-top">
                     <div class="market-logo" :class="account.marketplace">
-                        {{ account.marketplace === 'ozon' ? 'O' : 'WB' }}
+                        {{
+                            account.marketplace === 'shopify'
+                                ? 'S'
+                                : account.marketplace === 'ozon'
+                                  ? 'O'
+                                  : 'WB'
+                        }}
                     </div>
                     <span class="badge" :class="account.status === 'active' ? 'success' : ''">{{
                         statusNames[account.status]
                     }}</span>
                 </div>
                 <h2>{{ account.name }}</h2>
-                <p>{{ account.marketplace === 'ozon' ? 'Ozon' : 'Wildberries' }}</p>
+                <p>
+                    {{
+                        account.marketplace === 'shopify'
+                            ? 'Shopify'
+                            : account.marketplace === 'ozon'
+                              ? 'Ozon'
+                              : 'Wildberries'
+                    }}
+                </p>
                 <dl>
                     <dt>Режим</dt>
                     <dd>{{ account.is_demo ? 'Демонстрационный' : 'Локальный' }}</dd>
@@ -213,11 +245,42 @@ async function save() {
                     <dd>{{ account.listings_count ?? '—' }}</dd>
                 </dl>
                 <RouterLink
-                    :to="`/app/marketplace-stocks?marketplace_account_id=${account.id}`"
+                    :to="
+                        account.marketplace === 'shopify'
+                            ? `/app/marketplaces/shopify/${account.id}?tab=products`
+                            : `/app/marketplace-stocks?marketplace_account_id=${account.id}`
+                    "
                     class="account-stock-link"
                     >Открыть размещения <ArrowUpRight :size="15"
                 /></RouterLink>
-                <button class="secondary full" @click="edit(account)">
+                <template v-if="account.shopify"
+                    ><p>{{ account.shopify.domain }}</p>
+                    <p>
+                        API:
+                        {{
+                            account.shopify.api_status === 'connected'
+                                ? 'Проверен'
+                                : 'Требует проверки'
+                        }}
+                    </p>
+                    <p>
+                        Товаров {{ account.shopify.products_count }} · вариантов
+                        {{ account.shopify.variants_count }} · не сопоставлено
+                        {{ account.shopify.unmapped_count }}
+                    </p>
+                    <p>
+                        Последняя успешная синхронизация:
+                        {{ shortDate(account.shopify.last_synced_at ?? undefined) }}
+                    </p>
+                    <p>Следующая: {{ shortDate(account.shopify.next_sync_at ?? undefined) }}</p>
+                    <p v-if="account.shopify.latest_run">
+                        Задание: {{ account.shopify.latest_run.status }}
+                    </p>
+                    <RouterLink :to="`/app/marketplaces/shopify/${account.id}`" class="primary full"
+                        >Управлять Shopify</RouterLink
+                    ></template
+                >
+                <button v-else class="secondary full" @click="edit(account)">
                     <Pencil :size="15" />Редактировать
                 </button>
             </article>
@@ -240,20 +303,51 @@ async function save() {
                         maxlength="255"
                         autofocus /><FieldError :errors="fields.name" /></label
                 ><label
-                    >Маркетплейс<select v-model="form.marketplace">
+                    >Маркетплейс<select v-model="form.marketplace" aria-label="Маркетплейс">
                         <option value="ozon">Ozon</option>
-                        <option value="wildberries">Wildberries</option></select
+                        <option value="wildberries">Wildberries</option>
+                        <option value="shopify">Shopify</option></select
                     ><FieldError :errors="fields.marketplace" /></label
-                ><label
-                    >Статус<select v-model="form.status">
-                        <option value="demo">Демо</option>
-                        <option value="active">Активно</option>
-                        <option value="disabled">Отключено</option></select
-                    ><FieldError :errors="fields.status" /></label
-                ><label class="checkbox-label"
-                    ><input v-model="form.is_demo" type="checkbox" />Демонстрационный режим</label
-                ><FieldError :errors="fields.is_demo" />
-                <p class="fine-print">Статус «Активно» — локальный признак подключения.</p>
+                ><template v-if="form.marketplace !== 'shopify'"
+                    ><label
+                        >Статус<select v-model="form.status">
+                            <option value="demo">Демо</option>
+                            <option value="active">Активно</option>
+                            <option value="disabled">Отключено</option></select
+                        ><FieldError :errors="fields.status" /></label
+                    ><label class="checkbox-label"
+                        ><input v-model="form.is_demo" type="checkbox" />Демонстрационный
+                        режим</label
+                    ><FieldError :errors="fields.is_demo" />
+                    <p class="fine-print">
+                        Статус «Активно» — локальный признак подключения.
+                    </p></template
+                >
+                <template v-else>
+                    <label
+                        >Домен магазина<input
+                            v-model="credentials.shop_domain"
+                            placeholder="store.myshopify.com"
+                            required /><FieldError :errors="fields.shop_domain"
+                    /></label>
+                    <label
+                        >Client ID<input
+                            v-model="credentials.client_id"
+                            autocomplete="off"
+                            required /><FieldError :errors="fields.client_id"
+                    /></label>
+                    <label
+                        >Client Secret<input
+                            v-model="credentials.client_secret"
+                            type="password"
+                            autocomplete="new-password"
+                            required /><FieldError :errors="fields.client_secret"
+                    /></label>
+                    <p class="fine-print">
+                        После подключения проверьте доступ и подтвердите первый импорт. По умолчанию
+                        товары и остатки обновляются каждый час.
+                    </p>
+                </template>
                 <div class="form-actions">
                     <button type="button" class="secondary" :disabled="busy" @click="modal = false">
                         Отмена</button

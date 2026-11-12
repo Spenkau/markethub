@@ -128,8 +128,12 @@ async function changePage(value: number) {
             <strong>{{
                 loading
                     ? '—'
-                    : (result?.data.filter((i) => i.stock_quantity > 0 && i.stock_quantity <= 5)
-                          .length ?? 0)
+                    : (result?.data.filter(
+                          (i) =>
+                              i.stock_quantity !== null &&
+                              i.stock_quantity > 0 &&
+                              i.stock_quantity <= 5,
+                      ).length ?? 0)
             }}</strong
             ><span>Мало на странице · 1–5 шт.</span>
         </div>
@@ -179,7 +183,8 @@ async function changePage(value: number) {
             <select v-model="marketplace" aria-label="Маркетплейс">
                 <option value="">Все маркетплейсы</option>
                 <option value="wildberries">Wildberries</option>
-                <option value="ozon">Ozon</option></select
+                <option value="ozon">Ozon</option>
+                <option value="shopify">Shopify</option></select
             ><select v-model="stock" aria-label="Остаток">
                 <option value="">Любой остаток</option>
                 <option value="zero">Нет в наличии</option>
@@ -217,16 +222,26 @@ async function changePage(value: number) {
                         <tr v-for="item in result?.data" :key="item.id">
                             <td>
                                 <RouterLink
-                                    :to="`/app/products/${item.product.id}`"
+                                    :to="
+                                        item.marketplace_account.marketplace === 'shopify'
+                                            ? `/app/marketplaces/shopify/${item.marketplace_account_id}/products/${item.id}`
+                                            : `/app/products/${item.product?.id}`
+                                    "
                                     class="product-name"
-                                    >{{ item.product.name }}</RouterLink
-                                ><span class="table-subtitle mono">{{ item.product.sku }}</span>
+                                    >{{
+                                        item.product?.name || item.source_title || 'Не сопоставлен'
+                                    }}</RouterLink
+                                ><span class="table-subtitle mono">{{
+                                    item.product?.sku || 'Без SKU'
+                                }}</span>
                             </td>
                             <td>
                                 <strong>{{
-                                    item.marketplace_account.marketplace === 'ozon'
-                                        ? 'Ozon'
-                                        : 'Wildberries'
+                                    item.marketplace_account.marketplace === 'shopify'
+                                        ? 'Shopify'
+                                        : item.marketplace_account.marketplace === 'ozon'
+                                          ? 'Ozon'
+                                          : 'Wildberries'
                                 }}</strong
                                 ><span class="table-subtitle">{{
                                     item.marketplace_account.name
@@ -238,14 +253,25 @@ async function changePage(value: number) {
                                     :class="
                                         item.stock_quantity === 0
                                             ? 'zero'
-                                            : item.stock_quantity <= 5
+                                            : item.stock_quantity !== null &&
+                                                item.stock_quantity <= 5
                                               ? 'low'
                                               : ''
                                     "
-                                    >{{ item.stock_quantity }} шт.</span
-                                ><span v-if="item.stock_quantity <= 5" class="table-subtitle">{{
-                                    item.stock_quantity === 0 ? 'Нет в наличии' : 'Низкий остаток'
-                                }}</span>
+                                    >{{
+                                        item.stock_quantity === null
+                                            ? 'Неизвестно'
+                                            : `${item.stock_quantity} шт.`
+                                    }}</span
+                                ><span
+                                    v-if="item.stock_quantity !== null && item.stock_quantity <= 5"
+                                    class="table-subtitle"
+                                    >{{
+                                        item.stock_quantity === 0
+                                            ? 'Нет в наличии'
+                                            : 'Низкий остаток'
+                                    }}</span
+                                >
                             </td>
                             <td class="nowrap">
                                 {{ money(item.price_minor, item.currency) }}
@@ -259,7 +285,11 @@ async function changePage(value: number) {
                             </td>
                             <td>
                                 <RouterLink
-                                    :to="`/app/products/${item.product.id}`"
+                                    :to="
+                                        item.marketplace_account.marketplace === 'shopify'
+                                            ? `/app/marketplaces/shopify/${item.marketplace_account_id}/products/${item.id}`
+                                            : `/app/products/${item.product?.id}`
+                                    "
                                     class="text-link nowrap"
                                     >Карточка →</RouterLink
                                 >

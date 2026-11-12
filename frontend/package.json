@@ -14,7 +14,8 @@
         "test:e2e": "playwright test",
         "test:e2e:inventory": "playwright test --config=playwright.inventory.config.ts",
         "test:e2e:procurement": "playwright test --config=playwright.procurement.config.ts",
-        "test:e2e:onboarding": "playwright test --config=playwright.onboarding.config.ts"
+        "test:e2e:onboarding": "playwright test --config=playwright.onboarding.config.ts",
+        "test:e2e:shopify": "playwright test --config=playwright.shopify.config.ts"
     },
     "dependencies": {
         "axios": "^1.13.0",

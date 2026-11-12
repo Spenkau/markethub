@@ -9,6 +9,7 @@ const props = defineProps<{
     selectedOption?: { id: number; label: string };
     label: string;
     activeOnly?: boolean;
+    expanded?: boolean;
 }>();
 const model = defineModel<number | null>({ required: true });
 const search = ref(''),
@@ -87,13 +88,45 @@ onBeforeUnmount(() => {
                 :aria-label="`Поиск: ${label}`"
                 placeholder="Поиск по названию или коду"
                 maxlength="100"
-            /><select :value="model ?? ''" :aria-label="label" :disabled="loading" @change="select">
+            /><select
+                v-if="!expanded"
+                :value="model ?? ''"
+                :aria-label="label"
+                :disabled="loading"
+                @change="select"
+            >
                 <option value="">{{ loading ? 'Загрузка…' : 'Выберите из списка' }}</option>
                 <option v-for="option in visibleOptions" :key="option.id" :value="option.id">
                     {{ option.label }}
                 </option>
             </select></label
         >
+        <div
+            v-if="expanded"
+            class="picker-options"
+            role="group"
+            :aria-label="label"
+            :aria-busy="loading"
+        >
+            <p v-if="loading">Загрузка товаров…</p>
+            <template v-else>
+                <button
+                    v-for="option in visibleOptions"
+                    :key="option.id"
+                    type="button"
+                    class="picker-option"
+                    :class="{ chosen: model === option.id }"
+                    :aria-pressed="model === option.id"
+                    @click="
+                        model = option.id;
+                        chosen = option;
+                    "
+                >
+                    {{ option.label }}
+                </button>
+                <p v-if="!visibleOptions.length">Товары не найдены</p>
+            </template>
+        </div>
         <div v-if="lastPage > 1" class="picker-pagination">
             <button
                 type="button"
@@ -117,3 +150,26 @@ onBeforeUnmount(() => {
         </p>
     </div>
 </template>
+
+<style scoped>
+.picker-options {
+    display: grid;
+    gap: 6px;
+    max-height: 320px;
+    overflow: auto;
+    padding: 8px 0;
+}
+.picker-option {
+    text-align: left;
+    white-space: normal;
+    padding: 10px 12px;
+    border: 1px solid #dce3ed;
+    border-radius: 8px;
+    background: white;
+    color: #24344d;
+}
+.picker-option.chosen {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+</style>

@@ -4814,6 +4814,811 @@
         },
         "description": "Tour definitions live in frontend TypeScript. Backend stores per-user metadata. offer is throttled to 15 minutes after an offer/start and respects next_eligible_at and auto_start. Unanswered offer is eligible again after 24 hours; snooze interval defaults to 24 hours. Completed/skipped/in_progress cannot be offered automatically. Version rows are independent; global preference always applies."
       }
+    },
+    "/api/v1/shopify/connections": {
+      "post": {
+        "summary": "Create Shopify connection",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopifyConnectionInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shopify/connections/{account}": {
+      "get": {
+        "summary": "Get Shopify connection",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Update Shopify settings",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ShopifySettings"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shopify/connections/{account}/check": {
+      "post": {
+        "summary": "Check Shopify access and scopes",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shopify/connections/{account}/sync": {
+      "post": {
+        "summary": "Queue Shopify import",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ShopifySyncRun"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "confirm_initial_import": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shopify/connections/{account}/products": {
+      "get": {
+        "summary": "List imported Shopify variants",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shopify/connections/{account}/products/{listing}/mapping": {
+      "patch": {
+        "summary": "Map Shopify variant",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "listing",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "product_id"
+                ],
+                "properties": {
+                  "product_id": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/shopify/connections/{account}/inventory": {
+      "get": {
+        "summary": "Read external inventory snapshots",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shopify/connections/{account}/locations": {
+      "get": {
+        "summary": "List Shopify locations",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shopify/connections/{account}/runs": {
+      "get": {
+        "summary": "List Shopify sync history",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shopify/connections/{account}/runs/{run}": {
+      "get": {
+        "summary": "Get Shopify sync run",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ShopifySyncRun"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        },
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "run",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/shopify/connections/{account}/products/{listing}": {
+      "get": {
+        "summary": "Get Shopify variant detail and location snapshots",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "listing",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Another import is running"
+          }
+        }
+      }
+    },
+    "/api/v1/shopify/connections/{account}/products/{listing}/refresh": {
+      "post": {
+        "summary": "Queue point refresh of a Shopify variant",
+        "tags": [
+          "Shopify"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "account",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "listing",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Success"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Another import is running"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace-providers": {
+      "get": {
+        "summary": "List provider definitions and capabilities",
+        "tags": [
+          "Marketplaces"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Conflicting operation"
+          },
+          "422": {
+            "description": "Invalid provider configuration, unsupported capability or validation error"
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace-accounts/{account}/check": {
+      "post": {
+        "summary": "Check a supported provider connection",
+        "tags": [
+          "Marketplaces"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Conflicting operation"
+          },
+          "422": {
+            "description": "Invalid provider configuration, unsupported capability or validation error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/marketplace-accounts/{account}/disconnect": {
+      "post": {
+        "summary": "Disable connection and preserve history",
+        "tags": [
+          "Marketplaces"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Conflicting operation"
+          },
+          "422": {
+            "description": "Invalid provider configuration, unsupported capability or validation error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "account",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/marketplace-listings/{listing}/mapping": {
+      "patch": {
+        "summary": "Map or unmap an external variant",
+        "tags": [
+          "Marketplaces"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Conflicting operation"
+          },
+          "422": {
+            "description": "Invalid provider configuration, unsupported capability or validation error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "product_id"
+                ],
+                "properties": {
+                  "product_id": {
+                    "type": "integer",
+                    "nullable": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace-listings/{listing}/local-product": {
+      "post": {
+        "summary": "Explicitly create a local SKU from an external variant",
+        "tags": [
+          "Marketplaces"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "404": {
+            "description": "Not found in active organization"
+          },
+          "409": {
+            "description": "Conflicting operation"
+          },
+          "422": {
+            "description": "Invalid provider configuration, unsupported capability or validation error"
+          }
+        },
+        "parameters": [
+          {
+            "in": "path",
+            "name": "listing",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "sku"
+                ],
+                "properties": {
+                  "sku": {
+                    "type": "string",
+                    "maxLength": 100
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 255
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5058,10 +5863,7 @@
           },
           "marketplace": {
             "type": "string",
-            "enum": [
-              "wildberries",
-              "ozon"
-            ]
+            "description": "Provider code from GET /marketplace-providers"
           },
           "status": {
             "type": "string",
@@ -5073,13 +5875,37 @@
           },
           "is_demo": {
             "type": "boolean"
+          },
+          "configuration": {
+            "type": "object",
+            "description": "Public provider-specific configuration"
+          },
+          "credentials": {
+            "type": "object",
+            "writeOnly": true,
+            "description": "Provider-specific secrets; never returned"
+          },
+          "sync_frequency": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "hourly",
+              "daily"
+            ],
+            "default": "hourly"
+          },
+          "sync_products": {
+            "type": "boolean",
+            "default": true
+          },
+          "sync_inventory": {
+            "type": "boolean",
+            "default": true
           }
         },
         "required": [
           "name",
-          "marketplace",
-          "status",
-          "is_demo"
+          "marketplace"
         ]
       },
       "MarketplaceAccountPatch": {
@@ -5091,10 +5917,7 @@
           },
           "marketplace": {
             "type": "string",
-            "enum": [
-              "wildberries",
-              "ozon"
-            ]
+            "description": "Provider code from GET /marketplace-providers"
           },
           "status": {
             "type": "string",
@@ -5106,6 +5929,32 @@
           },
           "is_demo": {
             "type": "boolean"
+          },
+          "configuration": {
+            "type": "object",
+            "description": "Public provider-specific configuration"
+          },
+          "credentials": {
+            "type": "object",
+            "writeOnly": true,
+            "description": "Provider-specific secrets; never returned"
+          },
+          "sync_frequency": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "hourly",
+              "daily"
+            ],
+            "default": "hourly"
+          },
+          "sync_products": {
+            "type": "boolean",
+            "default": true
+          },
+          "sync_inventory": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -5162,6 +6011,21 @@
           "listings_url": {
             "type": "string",
             "format": "uri"
+          },
+          "configuration": {
+            "type": "object"
+          },
+          "provider": {
+            "type": "object"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "integration": {
+            "type": "object"
           }
         },
         "required": [
@@ -5371,7 +6235,8 @@
           "product_id": {
             "type": "integer",
             "format": "int64",
-            "minimum": 1
+            "minimum": 1,
+            "nullable": true
           },
           "marketplace_account_id": {
             "type": "integer",
@@ -5410,7 +6275,8 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0,
-            "maximum": 2147483647
+            "maximum": 2147483647,
+            "nullable": true
           },
           "status": {
             "type": "string",
@@ -5443,7 +6309,8 @@
               "sku": {
                 "type": "string"
               }
-            }
+            },
+            "nullable": true
           },
           "marketplace_account": {
             "type": "object",
@@ -5467,6 +6334,77 @@
                 "type": "boolean"
               }
             }
+          },
+          "marketplace_product_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "local",
+              "demo",
+              "imported"
+            ]
+          },
+          "variant_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "source_title": {
+            "type": "string",
+            "nullable": true
+          },
+          "source_status": {
+            "type": "string",
+            "nullable": true
+          },
+          "external_product": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "external_id": {
+                "type": "string"
+              },
+              "title": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string",
+                "nullable": true
+              },
+              "images": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "status": {
+                "type": "string"
+              }
+            }
+          },
+          "source_created_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "source_updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "source_synced_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
           }
         },
         "required": [
@@ -7453,6 +8391,148 @@
           "request_id"
         ],
         "description": "Creates current user membership and activates new organization; slug is server assigned. Same key/name/membership retries return the existing organization."
+      },
+      "ShopifySettings": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "disabled"
+            ]
+          },
+          "sync_frequency": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "hourly",
+              "daily"
+            ],
+            "default": "hourly"
+          },
+          "sync_products": {
+            "type": "boolean",
+            "default": true
+          },
+          "sync_inventory": {
+            "type": "boolean",
+            "default": true
+          },
+          "client_id": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          }
+        }
+      },
+      "ShopifyConnectionInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "shop_domain",
+          "client_id",
+          "client_secret"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "client_id": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "client_secret": {
+            "type": "string",
+            "writeOnly": true
+          },
+          "shop_domain": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*\\.myshopify\\.com$"
+          }
+        }
+      },
+      "ShopifySyncRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "completed",
+              "partial",
+              "failed"
+            ]
+          },
+          "trigger": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "automatic"
+            ]
+          },
+          "processed": {
+            "type": "integer"
+          },
+          "products_processed": {
+            "type": "integer"
+          },
+          "variants_processed": {
+            "type": "integer"
+          },
+          "inventory_processed": {
+            "type": "integer"
+          },
+          "created": {
+            "type": "integer"
+          },
+          "updated": {
+            "type": "integer"
+          },
+          "skipped": {
+            "type": "integer"
+          },
+          "errors_count": {
+            "type": "integer"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "finished_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "error_message": {
+            "type": "string",
+            "nullable": true
+          },
+          "details": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "target_listing_id": {
+            "type": "integer",
+            "nullable": true
+          }
+        }
       }
     }
   }

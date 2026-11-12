@@ -271,12 +271,20 @@ onMounted(load);
                             <tr v-for="item in problems" :key="item.id">
                                 <td>
                                     <RouterLink
-                                        :to="`/app/marketplace-stocks?product_id=${item.product.id}`"
+                                        :to="
+                                            item.marketplace_account.marketplace === 'shopify'
+                                                ? `/app/marketplaces/shopify/${item.marketplace_account_id}/products/${item.id}`
+                                                : `/app/marketplace-stocks?product_id=${item.product?.id}`
+                                        "
                                         class="product-name"
-                                        >{{ item.product.name }}</RouterLink
+                                        >{{
+                                            item.product?.name ||
+                                            item.source_title ||
+                                            'Не сопоставлен'
+                                        }}</RouterLink
                                     ><span class="table-subtitle"
                                         >{{ item.marketplace_account.name }} ·
-                                        {{ item.product.sku }}</span
+                                        {{ item.product?.sku || 'Без SKU' }}</span
                                     >
                                 </td>
                                 <td>

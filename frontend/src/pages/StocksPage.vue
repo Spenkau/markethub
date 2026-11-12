@@ -256,7 +256,11 @@ function movementDate(value: string) {
             </button>
         </div>
     </div>
-    <TourLauncher tour-id="warehouses" />
+    <TourLauncher tour-id="warehouses" /><RouterLink
+        to="/app/marketplaces?marketplace=shopify"
+        class="text-link"
+        >Внешние остатки Shopify — отдельно от физических →</RouterLink
+    >
     <div class="stats-grid inventory-stats">
         <div class="stat-card">
             <div class="stat-top">
@@ -472,7 +476,12 @@ function movementDate(value: string) {
                                         }"
                                         class="text-link"
                                         >История →</RouterLink
-                                    ><RouterLink v-if="row.warehouse.is_active" :to="`/app/purchases?create=purchase&product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`" class="table-subtitle text-link">Создать закупку →</RouterLink>
+                                    ><RouterLink
+                                        v-if="row.warehouse.is_active"
+                                        :to="`/app/purchases?create=purchase&product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`"
+                                        class="table-subtitle text-link"
+                                        >Создать закупку →</RouterLink
+                                    >
                                 </td>
                             </tr>
                         </tbody>

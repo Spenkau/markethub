@@ -15,6 +15,6 @@ class StockController extends Controller
     {
         Gate::authorize('viewAny', MarketplaceListing::class);
 
-        return MarketplaceListingResource::collection($catalog->listings($request));
+        return MarketplaceListingResource::collection($catalog->listingQuery($request, true)->paginate($request->integer('per_page', 20))->withQueryString());
     }
 }

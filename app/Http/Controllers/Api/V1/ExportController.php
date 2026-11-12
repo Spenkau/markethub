@@ -27,6 +27,6 @@ class ExportController extends Controller
         Gate::authorize('viewAny', MarketplaceListing::class);
         abort_if(OrganizationContext::id() === null, 403);
 
-        return $excel->download(new CatalogExport($catalog->listingQuery($request), true), 'stocks.xlsx', Excel::XLSX, ['Cache-Control' => 'private, no-store']);
+        return $excel->download(new CatalogExport($catalog->listingQuery($request, true), true), 'stocks.xlsx', Excel::XLSX, ['Cache-Control' => 'private, no-store']);
     }
 }

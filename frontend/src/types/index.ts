@@ -20,6 +20,16 @@ export interface Product {
     currency: string;
     is_active: boolean;
     listings_count?: number;
+    shopify_listings?: {
+        id: number;
+        account_id: number;
+        account_name: string;
+        external_id: string;
+        price_minor: number;
+        currency: string;
+        status: string;
+        synced_at: string | null;
+    }[];
     created_at: string;
     updated_at: string;
 }
@@ -30,7 +40,8 @@ export type ProductInput = Pick<
 export interface MarketplaceAccount {
     id: number;
     name: string;
-    marketplace: 'wildberries' | 'ozon';
+    marketplace: 'wildberries' | 'ozon' | 'shopify';
+    shopify?: import('../api/shopify').ShopifySummary | null;
     status: 'demo' | 'active' | 'disabled';
     is_demo: boolean;
     listings_count?: number;
@@ -40,9 +51,12 @@ export interface MarketplaceAccount {
 export type AccountInput = Pick<MarketplaceAccount, 'name' | 'marketplace' | 'status' | 'is_demo'>;
 export interface Stock {
     id: number;
-    product: Pick<Product, 'id' | 'name' | 'sku'>;
+    source_title?: string | null;
+    source_synced_at?: string | null;
+    marketplace_account_id: number;
+    product: Pick<Product, 'id' | 'name' | 'sku'> | null;
     marketplace_account: Pick<MarketplaceAccount, 'id' | 'name' | 'marketplace' | 'is_demo'>;
-    stock_quantity: number;
+    stock_quantity: number | null;
     price_minor: number;
     currency: string;
     status: 'active' | 'inactive';

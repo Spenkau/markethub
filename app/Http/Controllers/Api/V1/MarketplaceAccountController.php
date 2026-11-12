@@ -8,6 +8,9 @@ use App\Http\Requests\Api\V1\MarketplaceAccountRequest;
 use App\Http\Resources\Api\V1\MarketplaceAccountResource;
 use App\Models\MarketplaceAccount;
 use App\Services\CatalogQuery;
+use App\Services\Marketplaces\ConnectionService;
+use App\Services\Marketplaces\ProviderRegistry;
+use App\Support\OrganizationContext;
 use Illuminate\Support\Facades\Gate;
 
 class MarketplaceAccountController extends Controller
@@ -31,9 +34,9 @@ class MarketplaceAccountController extends Controller
         return MarketplaceAccountResource::collection($catalog->paginate($query, $request, ['id' => 'id', 'name' => 'name', 'created_at' => 'created_at']));
     }
 
-    public function store(MarketplaceAccountRequest $request)
+    public function store(MarketplaceAccountRequest $request, ConnectionService $connections)
     {
-        return (new MarketplaceAccountResource(MarketplaceAccount::create($request->validated())))->response()->setStatusCode(201);
+        return (new MarketplaceAccountResource($connections->create(OrganizationContext::id(), $request->all())))->response()->setStatusCode(201);
     }
 
     public function show(MarketplaceAccount $marketplaceAccount): MarketplaceAccountResource
@@ -43,16 +46,34 @@ class MarketplaceAccountController extends Controller
         return new MarketplaceAccountResource($marketplaceAccount->loadCount('listings'));
     }
 
-    public function update(MarketplaceAccountRequest $request, MarketplaceAccount $marketplaceAccount): MarketplaceAccountResource
+    public function update(MarketplaceAccountRequest $request, MarketplaceAccount $marketplaceAccount, ConnectionService $connections): MarketplaceAccountResource
     {
-        $marketplaceAccount->update($request->validated());
+        $marketplaceAccount = $connections->update($marketplaceAccount, $request->all());
 
         return new MarketplaceAccountResource($marketplaceAccount);
+    }
+
+    public function providers(ProviderRegistry $providers)
+    {
+        Gate::authorize('viewAny', MarketplaceAccount::class);
+
+        return response()->json(['data' => $providers->definitions()]);
+    }
+
+    public function check(MarketplaceAccount $marketplaceAccount, ConnectionService $connections)
+    {
+        return response()->json(['data' => $connections->check($marketplaceAccount)]);
+    }
+
+    public function disconnect(MarketplaceAccount $marketplaceAccount, ConnectionService $connections)
+    {
+        return new MarketplaceAccountResource($connections->disconnect($marketplaceAccount));
     }
 
     public function destroy(MarketplaceAccount $marketplaceAccount)
     {
         Gate::authorize('delete', $marketplaceAccount);
+        abort_if(app(ProviderRegistry::class)->get($marketplaceAccount->marketplace)->definition()['connection_type'] !== 'demo', 422, 'Отключите подключение вместо удаления истории.');
         $marketplaceAccount->delete();
 
         return response()->noContent();
