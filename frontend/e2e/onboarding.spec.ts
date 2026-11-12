@@ -192,7 +192,7 @@ test('первое предложение, переходы экскурсии, 
         .getByTestId('tour-products')
         .getByRole('button', { name: 'Продолжить', exact: true })
         .click();
-    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 2 из 4');
+    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 2 из 6');
     await next(page);
     await expect(page).toHaveURL(/products\/new/);
     await expect(page.locator('.tour-highlight')).toBeVisible();
@@ -205,7 +205,9 @@ test('первое предложение, переходы экскурсии, 
     await other.close();
     await page.goto('/app/help');
     await page.getByTestId('tour-products').getByRole('button', { name: 'Пройти заново' }).click();
-    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 1 из 4');
+    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 1 из 6');
+    await next(page);
+    await next(page);
     await next(page);
     await next(page);
     await next(page);
@@ -349,4 +351,33 @@ test('первое посещение раздела, защита форм и �
     await next(page);
     await finish(page);
     expect(writes).toEqual([]);
+});
+
+test('обновлённая экскурсия Shopify использует общие маршруты и существующие anchors', async ({
+    page,
+}) => {
+    fixture(false);
+    await login(page, '/app/help');
+    await page
+        .getByTestId('tour-shopify')
+        .getByRole('button', { name: 'Начать', exact: true })
+        .click();
+    await expect(page.locator('.tour-highlight')).toBeVisible();
+    await expect(page.locator('[data-tour="create-marketplace"]')).toBeVisible();
+    await next(page);
+    const back = page.locator('.tour-tooltip').getByRole('button', { name: 'Назад', exact: true });
+    await back.click();
+    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 1 из 7');
+    await expect(page.locator('.tour-highlight')).toBeVisible();
+    await next(page);
+    for (let i = 2; i < 7; i++) {
+        await next(page);
+        await expect(page.locator('.tour-highlight')).toBeVisible();
+        await expect(
+            page.getByText('Элемент сейчас недоступен', { exact: false }),
+        ).not.toBeVisible();
+    }
+    await finish(page);
+    await page.goto('/app/help');
+    await expect(page.getByTestId('tour-shopify')).toContainText('Завершена');
 });

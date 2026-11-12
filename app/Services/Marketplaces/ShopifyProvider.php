@@ -12,7 +12,7 @@ use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
-class ShopifyProvider implements InventorySourceNormalizer, MarketplaceProvider
+class ShopifyProvider implements ConnectionProbe, InventorySourceNormalizer, MarketplaceProvider, ProductLinks
 {
     public function definition(): array
     {
@@ -59,6 +59,25 @@ class ShopifyProvider implements InventorySourceNormalizer, MarketplaceProvider
                 $account->forceFill(['shopify_client_id' => $credentials['client_id'], 'shopify_client_secret' => $credentials['client_secret']]);
             }
         };
+    }
+
+    public function probe(array $configuration, array $credentials): array
+    {
+        $account = new MarketplaceAccount;
+        $account->forceFill(['marketplace' => 'shopify', 'shop_domain' => $configuration['shop_domain'], 'shopify_client_id' => $credentials['client_id'], 'shopify_client_secret' => $credentials['client_secret']]);
+        $data = app(ShopifyClient::class)->query($account, 'query { shop { name currencyCode } currentAppInstallation { accessScopes { handle } } }');
+        $scopes = array_column($data['currentAppInstallation']['accessScopes'], 'handle');
+
+        return ['shop_name' => $data['shop']['name'], 'currency' => $data['shop']['currencyCode'], 'missing_scopes' => array_values(array_diff(['read_products', 'read_inventory', 'read_locations'], $scopes))];
+    }
+
+    public function adminUrl(MarketplaceAccount $account, ?string $externalProductId): ?string
+    {
+        if (! preg_match('/^[a-z0-9][a-z0-9-]*\.myshopify\.com$/', (string) $account->shop_domain) || ! preg_match('~^gid://shopify/Product/(\d+)$~', (string) $externalProductId, $match)) {
+            return null;
+        }
+
+        return 'https://'.$account->shop_domain.'/admin/products/'.$match[1];
     }
 
     public function normalizeLocation(array $raw, string $syncedAt): ExternalLocation

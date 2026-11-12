@@ -6432,6 +6432,485 @@
           }
         }
       }
+    },
+    "/api/v1/catalog": {
+      "get": {
+        "summary": "Unified read projection of local SKUs and grouped unmapped external variants",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "name",
+                "sku",
+                "price_minor",
+                "created_at"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "local",
+                "external"
+              ]
+            }
+          },
+          {
+            "name": "mapping",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "mapped",
+                "unmapped"
+              ]
+            }
+          },
+          {
+            "name": "is_demo",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "marketplace",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "provider",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "marketplace_account_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or outside active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Dependency or concurrent unique conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "419": {
+            "description": "CSRF verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/catalog/{kind}/{id}": {
+      "get": {
+        "summary": "Typed product detail with variants, physical stock and external inventory",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "local",
+                "external_product",
+                "external_variant"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/CatalogDetail"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or outside active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Dependency or concurrent unique conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "419": {
+            "description": "CSRF verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/marketplace-connections/check": {
+      "post": {
+        "summary": "Probe an unsaved supported connection without storing credentials or importing data",
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "marketplace",
+                  "configuration",
+                  "credentials"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "marketplace": {
+                    "type": "string"
+                  },
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "credentials": {
+                    "type": "object",
+                    "writeOnly": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "shop_name": {
+                          "type": "string"
+                        },
+                        "currency": {
+                          "type": "string"
+                        },
+                        "missing_scopes": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found or outside active organization",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Dependency or concurrent unique conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "419": {
+            "description": "CSRF verification failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many login attempts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -9435,6 +9914,298 @@
             "format": "date-time"
           }
         }
+      },
+      "CatalogSource": {
+        "type": "object",
+        "description": "Normalized external variant. IDs are marketplace_listing IDs; product_id is the optional local SKU. No raw provider payload.",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "product_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "marketplace_product_id": {
+            "type": "integer",
+            "nullable": true
+          },
+          "external_id": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "price_minor": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "account": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer"
+              },
+              "name": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string"
+              },
+              "is_demo": {
+                "type": "boolean"
+              }
+            }
+          },
+          "admin_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "inventory": {
+            "type": "object",
+            "description": "External values only; never added to physical stock."
+          },
+          "active_run": {
+            "type": "object",
+            "nullable": true
+          },
+          "source_synced_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogEntry": {
+        "type": "object",
+        "required": [
+          "key",
+          "kind",
+          "entity_id",
+          "title",
+          "sources"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Namespaced stable identity, e.g. local:76 or external_product:17"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "local",
+              "external_product",
+              "external_variant"
+            ]
+          },
+          "entity_id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "mapping": {
+            "type": "string",
+            "enum": [
+              "local",
+              "mapped",
+              "unmapped"
+            ]
+          },
+          "price_minor": {
+            "type": "integer"
+          },
+          "currency": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "physical_quantity": {
+            "type": "integer",
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "maxItems": 1,
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "alt": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "sources": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "$ref": "#/components/schemas/CatalogSource"
+            }
+          },
+          "sources_count": {
+            "type": "integer"
+          },
+          "source_synced_at": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CatalogDetail": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "local",
+              "external_product",
+              "external_variant"
+            ]
+          },
+          "entity_id": {
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "images": {
+            "type": "array",
+            "maxItems": 12,
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string",
+                  "format": "uri"
+                },
+                "alt": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "local_product": {
+            "type": "object",
+            "nullable": true,
+            "description": "Present only for a local SKU route; external IDs cannot be used for local operations."
+          },
+          "sources": {
+            "type": "array",
+            "maxItems": 20,
+            "items": {
+              "$ref": "#/components/schemas/CatalogSource"
+            }
+          },
+          "sources_count": {
+            "type": "integer"
+          },
+          "sources_page": {
+            "type": "integer"
+          },
+          "sources_last_page": {
+            "type": "integer"
+          },
+          "physical_stocks": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "inventory": {
+            "type": "array",
+            "maxItems": 200,
+            "items": {
+              "type": "object"
+            }
+          },
+          "inventory_total": {
+            "type": "integer"
+          }
+        }
+      },
+      "CatalogPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CatalogEntry"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
       }
     }
   }

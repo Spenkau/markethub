@@ -45,13 +45,13 @@ export const tours: TourDefinition[] = [
                 target: target('dashboard-kpis'),
                 title: 'Показатели без выдуманных цифр',
                 description:
-                    'Здесь текущие данные каталога и размещений. Физические складские остатки показаны отдельно. Источников выручки и внешней синхронизации пока нет.',
+                    'Здесь текущие данные каталога и размещений. Физические складские остатки показаны отдельно. Выручка не рассчитывается; актуальность внешних снимков видна в карточках.',
             },
         ],
     },
     {
         id: 'products',
-        version: 1,
+        version: 2,
         title: 'Товары и единый каталог',
         description: 'Карточка, SKU и переход к закупке или складским остаткам.',
         trigger: { type: 'first-visit', route: '/app/products' },
@@ -59,13 +59,14 @@ export const tours: TourDefinition[] = [
             {
                 id: 'catalog',
                 route: '/app/products',
-                target: target('product-list'),
+                target: target('catalog-heading'),
                 title: 'Единый каталог',
                 description:
                     'Один товар можно учитывать на нескольких складах и связывать с размещениями площадок. Карточка хранит название, SKU и цену продажи.',
             },
             {
                 id: 'create',
+                route: '/app/products',
                 target: target('create-product'),
                 title: 'Создать товар',
                 description:
@@ -82,10 +83,26 @@ export const tours: TourDefinition[] = [
             {
                 id: 'details',
                 route: '/app/products',
-                target: target('product-list'),
+                target: target('catalog-heading'),
                 title: 'От товара к следующему действию',
                 description:
                     'Название в таблице открывает карточку. Из неё можно создать закупку с этим товаром или открыть его физические остатки. В пустом каталоге сначала сохраните первую карточку.',
+            },
+            {
+                id: 'source-search',
+                route: '/app/products',
+                target: target('catalog-search'),
+                title: 'Источники и несопоставленные варианты',
+                description:
+                    'Фильтры площадки, подключения и сопоставления работают на сервере. Состояние сохраняется в адресе страницы.',
+            },
+            {
+                id: 'source-update',
+                route: '/app/products',
+                target: target('catalog-heading'),
+                title: 'Сопоставить и обновить выбранный вариант',
+                description:
+                    'Откройте карточку по названию. В размещениях выберите «Сопоставить с MarketHub», подтвердите конкретную SKU или создайте её явно. «Обновить из источника» обновляет только выбранный вариант, а «Открыть в Shopify Admin» открывает внешний сайт.',
             },
         ],
     },
@@ -234,7 +251,7 @@ export const tours: TourDefinition[] = [
     },
     {
         id: 'marketplaces',
-        version: 1,
+        version: 2,
         title: 'Маркетплейсы и размещения',
         description: 'Связь площадки с каталогом и ограничения текущих подключений.',
         trigger: { type: 'first-visit', route: '/app/marketplaces' },
@@ -245,19 +262,19 @@ export const tours: TourDefinition[] = [
                 target: target('marketplace-heading'),
                 title: 'Подключения организации',
                 description:
-                    'Карточки описывают аккаунты Ozon и Wildberries. Сохранённый статус «Активно» — локальный признак, а не результат внешней синхронизации.',
+                    'Карточки описывают подключения всех площадок. Сохранённый статус «Активно» — локальный признак, а не результат внешней синхронизации.',
             },
             {
                 id: 'create',
                 target: target('create-marketplace'),
                 title: 'Добавить подключение',
                 description:
-                    'Укажите площадку и имя аккаунта. API Ozon и Wildberries пока не интегрированы. Для Shopify доступен отдельный импорт в MarketHub.',
+                    'Укажите площадку и имя аккаунта. API Ozon и Wildberries пока не интегрированы. Shopify использует общий импорт и историю.',
             },
             {
                 id: 'catalog',
                 route: '/app/marketplace-stocks',
-                target: target('marketplace-stock-list'),
+                target: target('inventory-heading'),
                 title: 'Размещения и единый каталог',
                 description:
                     'Размещение связывает товар каталога с аккаунтом площадки. Его остаток показан отдельно от физического наличия на складах и не суммируется с ним.',
@@ -266,7 +283,7 @@ export const tours: TourDefinition[] = [
     },
     {
         id: 'shopify',
-        version: 1,
+        version: 2,
         title: 'Shopify: подключение и импорт',
         description: 'Первый импорт, варианты каталога, внешние остатки и расписание.',
         trigger: {
@@ -278,43 +295,55 @@ export const tours: TourDefinition[] = [
             {
                 id: 'connection',
                 route: '/app/marketplaces',
-                target: target('shopify-connect'),
+                target: target('create-marketplace'),
                 title: 'Подключение Shopify',
                 description:
                     'Каждый магазин имеет независимые реквизиты и историю. Откройте управление магазином после экскурсии.',
             },
             {
                 id: 'import',
+                route: '/app/marketplaces?marketplace=shopify',
+                target: target('marketplace-heading'),
                 title: 'Первый импорт требует подтверждения',
                 description:
                     'В обзоре подключения проверьте API и нажмите «Выполнить первый импорт». Данные обрабатываются в очереди; статус и результат видны в обзоре.',
             },
             {
                 id: 'products',
+                route: '/app/products?marketplace=shopify',
+                target: target('catalog-heading'),
                 title: 'Товары и варианты',
                 description:
-                    'Вкладка «Товары» показывает цены, статусы, SKU и варианты Shopify. Новые однозначные варианты получают карточки каталога; локальные правки повторный импорт не перезаписывает.',
+                    'Вкладка «Товары» показывает цены, статусы, SKU и варианты Shopify. Несопоставленные варианты видны без создания локальной SKU. Локальные правки импорт не перезаписывает.',
             },
             {
                 id: 'mapping',
+                route: '/app/products?marketplace=shopify',
+                target: target('catalog-mapping'),
                 title: 'Сопоставление с каталогом',
                 description:
                     'Совпадение SKU не связывает товар автоматически. Для несопоставленного варианта нажмите «Сопоставить» и выберите товар MarketHub. Данные Shopify не меняются.',
             },
             {
                 id: 'inventory',
+                route: '/app/marketplace-stocks?marketplace=shopify',
+                target: target('inventory-heading'),
                 title: 'Внешние остатки',
                 description:
                     'Вкладка «Остатки» показывает Shopify Locations и время снимка. Эти количества не суммируются с физическими запасами MarketHub. «—» означает неизвестное количество.',
             },
             {
                 id: 'schedule',
+                route: '/app/marketplaces?marketplace=shopify',
+                target: target('marketplace-heading'),
                 title: 'Автоматическое обновление',
                 description:
                     'Во вкладке «Настройки» выберите каждый час, раз в сутки или вручную. Товары и остатки включаются независимо. Расписание начинает работать после успешного первого импорта, при работающем компьютере, Scheduler и worker.',
             },
             {
                 id: 'history',
+                route: '/app/marketplaces?marketplace=shopify',
+                target: target('marketplace-heading'),
                 title: 'История и диагностика',
                 description:
                     'Во вкладке «История» доступны все запуски, длительность и безопасные причины ошибок. Частичное завершение не означает полный успех. Интеграция работает только Shopify → MarketHub.',

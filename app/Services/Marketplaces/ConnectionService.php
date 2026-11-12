@@ -16,6 +16,20 @@ class ConnectionService
 {
     public function __construct(private ProviderRegistry $providers) {}
 
+    public function probe(int $organizationId, array $data): array
+    {
+        Gate::authorize('create', MarketplaceAccount::class);
+        abort_unless(OrganizationContext::id() === $organizationId, 403);
+        $data = $this->validated($data, null, $organizationId);
+        $provider = $this->providers->get($data['marketplace']);
+        abort_unless($provider instanceof ConnectionProbe, 422, 'Проверка несохранённого подключения не поддерживается.');
+        try {
+            return $provider->probe($data['configuration'] ?? [], $data['credentials'] ?? []);
+        } catch (\Throwable) {
+            throw ValidationException::withMessages(['connection' => 'Не удалось проверить подключение. Проверьте реквизиты и права API.']);
+        }
+    }
+
     public function create(int $organizationId, array $data): MarketplaceAccount
     {
         if (auth()->check()) {

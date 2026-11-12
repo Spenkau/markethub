@@ -37,7 +37,7 @@ export const router = createRouter({
                 },
                 {
                     path: 'products/:id',
-                    component: () => import('../pages/ProductDetailPage.vue'),
+                    component: () => import('../pages/CatalogDetailPage.vue'),
                     meta: { title: 'Карточка товара' },
                 },
                 {
@@ -67,13 +67,29 @@ export const router = createRouter({
                 },
                 {
                     path: 'marketplaces/shopify/:id/products/:listing',
-                    component: () => import('../pages/ShopifyProductPage.vue'),
+                    redirect: (to) => ({
+                        path: `/app/catalog/external_variant/${to.params.listing}`,
+                        query: to.query,
+                    }),
                     meta: { title: 'Товар Shopify' },
                 },
                 {
                     path: 'marketplaces/shopify/:id',
-                    component: () => import('../pages/ShopifyPage.vue'),
+                    redirect: (to) => ({
+                        path: `/app/marketplaces/${to.params.id}`,
+                        query: to.query,
+                    }),
                     meta: { title: 'Shopify' },
+                },
+                {
+                    path: 'catalog/:kind/:id',
+                    component: () => import('../pages/CatalogDetailPage.vue'),
+                    meta: { title: 'Карточка товара' },
+                },
+                {
+                    path: 'marketplaces/:id(\\d+)',
+                    component: () => import('../pages/MarketplaceConnectionPage.vue'),
+                    meta: { title: 'Подключение площадки' },
                 },
                 {
                     path: 'marketplace-stocks',

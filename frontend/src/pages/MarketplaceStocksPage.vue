@@ -2,6 +2,7 @@
 import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Search } from 'lucide-vue-next';
+import { connectionsApi, type Provider } from '../api/connections';
 import { marketplacesApi } from '../api/marketplaces';
 import { inventoryApi, type Warehouse } from '../api/inventory';
 import type { MarketplaceAccount } from '../types';
@@ -13,6 +14,7 @@ import { money } from '../utils/money';
 import type { Page, Stock } from '../types';
 import PageState from '../components/ui/PageState.vue';
 import PaginationBar from '../components/ui/PaginationBar.vue';
+const props = defineProps<{ accountId?: number; embedded?: boolean }>();
 const router = useRouter();
 const route = useRoute(),
     search = ref(''),
@@ -27,10 +29,16 @@ const route = useRoute(),
     loading = ref(true),
     error = ref('');
 
+const providers = ref<Provider[]>([]);
+function productUrl(item: Stock) {
+    return item.inventory_origin === 'external_snapshot' || !item.product
+        ? `/app/catalog/external_variant/${item.id}`
+        : `/app/products/${item.product.id}`;
+}
 const accounts = ref<MarketplaceAccount[]>([]),
     locations = ref<ExternalLocation[]>([]),
     warehouses = ref<Warehouse[]>([]);
-const accountId = ref(String(route.query.marketplace_account_id || '')),
+const accountId = ref(String(props.accountId || route.query.marketplace_account_id || '')),
     locationId = ref(''),
     current = ref(''),
     mapping = ref(''),
@@ -75,11 +83,19 @@ watch(selectedLocation, (l) => {
     warehouseId.value = l?.warehouse_id ? String(l.warehouse_id) : '';
 });
 watch(accountId, loadLocations);
+watch(
+    () => props.accountId,
+    (value) => {
+        accountId.value = String(value || '');
+        void load();
+    },
+);
 watch(marketplace, () => {
     if (!visibleAccounts.value.some((a) => String(a.id) === accountId.value)) accountId.value = '';
 });
 async function loadOptions() {
     try {
+        providers.value = await connectionsApi.providers();
         let pageNumber = 1,
             last = 1;
         const all: MarketplaceAccount[] = [];
@@ -116,7 +132,7 @@ function filters() {
         status: status.value || undefined,
         sort: sort.value,
         direction: direction.value,
-        marketplace_account_id: accountId.value || undefined,
+        marketplace_account_id: props.accountId || accountId.value || undefined,
         location_id: locationId.value || undefined,
         is_current: current.value || undefined,
         mapping: mapping.value || undefined,
@@ -176,8 +192,16 @@ watch(
     },
 );
 watch(
-    () => [route.query.product_id, route.query.marketplace_account_id],
+    () => [
+        route.query.product_id,
+        route.query.marketplace_account_id,
+        route.query.marketplace,
+        route.query.stock,
+    ],
     () => {
+        accountId.value = String(props.accountId || route.query.marketplace_account_id || '');
+        marketplace.value = String(route.query.marketplace || '');
+        stock.value = String(route.query.stock || '');
         page.value = 1;
         void load();
     },
@@ -187,11 +211,11 @@ function resetFilters() {
     marketplace.value = '';
     stock.value = '';
     status.value = '';
-    accountId.value = '';
+    accountId.value = props.accountId ? String(props.accountId) : '';
     locationId.value = '';
     current.value = '';
     mapping.value = '';
-    void router.replace({ query: {} });
+    void router.replace({ query: props.embedded ? { tab: 'inventory' } : {} });
 }
 onMounted(() => {
     void load();
@@ -207,7 +231,7 @@ async function changePage(value: number) {
 }
 </script>
 <template>
-    <div class="page-heading">
+    <div v-if="!embedded" class="page-heading">
         <div>
             <p class="eyebrow">НАЛИЧИЕ НА МАРКЕТПЛЕЙСАХ</p>
             <h1>Остатки маркетплейсов</h1>
@@ -247,12 +271,16 @@ async function changePage(value: number) {
     <section class="panel" data-tour="marketplace-stock-list">
         <div class="section-heading padded">
             <div>
-                <h2>Наличие по внешним локациям</h2>
+                <h2 data-tour="inventory-heading">Наличие по внешним локациям</h2>
                 <p>Порог низкого остатка — 5 единиц</p>
             </div>
             <button
                 v-if="
                     search ||
+                    locationId ||
+                    current ||
+                    mapping ||
+                    (!props.accountId && accountId) ||
                     marketplace ||
                     stock ||
                     status ||
@@ -288,9 +316,9 @@ async function changePage(value: number) {
             </div>
             <select v-model="marketplace" aria-label="Маркетплейс">
                 <option value="">Все маркетплейсы</option>
-                <option value="wildberries">Wildberries</option>
-                <option value="ozon">Ozon</option>
-                <option value="shopify">Shopify</option></select
+                <option v-for="p in providers" :key="p.code" :value="p.code">
+                    {{ p.name }}
+                </option></select
             ><select v-model="stock" aria-label="Остаток">
                 <option value="">Любой остаток</option>
                 <option value="zero">Нет в наличии</option>
@@ -298,7 +326,7 @@ async function changePage(value: number) {
                 <option value="unknown">Неизвестно</option>
                 <option value="negative">Отрицательный</option>
             </select>
-            <select v-model="accountId" aria-label="Подключение">
+            <select v-model="accountId" aria-label="Подключение" :disabled="!!props.accountId">
                 <option value="">Все подключения</option>
                 <option v-for="a in visibleAccounts" :key="a.id" :value="String(a.id)">
                     {{ a.name }}
@@ -370,27 +398,18 @@ async function changePage(value: number) {
                             :key="`${item.id}:${item.inventory_level_id ?? 'summary'}`"
                         >
                             <td>
-                                <RouterLink
-                                    :to="
-                                        item.marketplace_account.marketplace === 'shopify'
-                                            ? `/app/marketplaces/shopify/${item.marketplace_account_id}/products/${item.id}`
-                                            : `/app/products/${item.product?.id}`
-                                    "
-                                    class="product-name"
-                                    >{{
-                                        item.product?.name || item.source_title || 'Не сопоставлен'
-                                    }}</RouterLink
+                                <RouterLink :to="productUrl(item)" class="product-name">{{
+                                    item.product?.name || item.source_title || 'Не сопоставлен'
+                                }}</RouterLink
                                 ><span class="table-subtitle mono">{{
                                     item.external_sku || item.product?.sku || 'Без SKU'
                                 }}</span>
                             </td>
                             <td>
                                 <strong>{{
-                                    item.marketplace_account.marketplace === 'shopify'
-                                        ? 'Shopify'
-                                        : item.marketplace_account.marketplace === 'ozon'
-                                          ? 'Ozon'
-                                          : 'Wildberries'
+                                    providers.find(
+                                        (p) => p.code === item.marketplace_account.marketplace,
+                                    )?.name || item.marketplace_account.marketplace
                                 }}</strong
                                 ><span class="table-subtitle">{{
                                     item.marketplace_account.name
@@ -458,13 +477,7 @@ async function changePage(value: number) {
                                 >
                             </td>
                             <td>
-                                <RouterLink
-                                    :to="
-                                        item.marketplace_account.marketplace === 'shopify'
-                                            ? `/app/marketplaces/shopify/${item.marketplace_account_id}/products/${item.id}`
-                                            : `/app/products/${item.product?.id}`
-                                    "
-                                    class="text-link nowrap"
+                                <RouterLink :to="productUrl(item)" class="text-link nowrap"
                                     >Карточка →</RouterLink
                                 >
                             </td>

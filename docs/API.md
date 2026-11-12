@@ -155,3 +155,16 @@ Endpoints интеграции, настройки, схема данных и �
 Фильтры: `marketplace` (alias `provider`), `marketplace_account_id`, `location_id`, `product_id`, `search` (нормализованное внешнее название, SKU, barcode и локальные поля), `mapping=mapped|unmapped`, `origin`, `is_current`, `tracked`, `location_active`, `stock=zero|low|positive|negative|unknown`, `status`, page/per_page (максимум 100). Сортировка: id/price_minor/stock_quantity/created_at и direction. ID строки — прежний listing ID; для уникального ключа строки используйте пару listing ID + inventory_level_id.
 
 Mapping не проводит складских операций и не разрешает запись в Shopify. Credentials, raw source и произвольная metadata снимка не сериализуются в общий API. `quantities` содержит дополнительные нормализованные количества. Legacy Shopify API сохраняет `shopify_location_id`, available/on_hand/incoming/committed и прежний формат ответа. XLSX сохраняет прежние 13 столбцов и дополняет их локацией, происхождением, актуальностью, tracked state и временем снимка.
+
+
+## Единый каталог и UI (TASK11)
+
+`GET /api/v1/products` остаётся локальными SKU. `GET /api/v1/catalog` — read projection существующих таблиц: одна строка `local` на Product с размещениями; `external_product` группирует несопоставленные варианты общего внешнего родителя; `external_variant` представляет вариант без родителя. `key` содержит namespace, `entity_id` интерпретируется только вместе с `kind`. GET detail: `/api/v1/catalog/{local|external_product|external_variant}/{id}`.
+
+Список пагинируется на сервере, до 100 строк. Фильтры: search (local/external title, SKU, barcode, parent/listing external ID), marketplace/provider, marketplace_account_id, kind=local|external, mapping=mapped|unmapped, is_active/status, is_demo, origin. Sort: id/name/sku/price_minor/created_at, direction. Локальная карточка не дублируется при нескольких подходящих размещениях.
+
+В списке не более 8 source previews и одной фотографии на карточку; sources_count показывает полный размер группы. Detail имеет до 12 фотографий, 20 sources на страницу и до 200 inventory levels с inventory_total и ссылкой на полный inventory API. Физические stocks и внешние inventory всегда раздельны. Нормализованные source поля не содержат raw source_data.
+
+`POST /api/v1/marketplace-connections/check` проверяет несохранённое подключение (name, marketplace, configuration, write-only credentials), если адаптер поддерживает ConnectionProbe. Account/credentials не сохраняются, импорт не выполняется; возвращаются безопасные сведения и missing_scopes. Endpoint ограничен 10 запросами в минуту. Сохранение и изменение по-прежнему выполняют общие marketplace-accounts endpoints.
+
+Сопоставление, явное создание локальной SKU и refresh используют прежние общие endpoints TASK8/TASK9. Shopify Admin URL формируется адаптером ProductLinks с проверкой домена и external Product ID. Старые Shopify HTTP endpoints сохранены; старые Vue URLs перенаправляются на общие маршруты. Подробности: [TASK11](architecture/marketplace-ui-task11.md).

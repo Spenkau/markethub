@@ -58,6 +58,7 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     await page.getByRole('button', { name: 'Сохранить товар' }).click();
     await expect(page).toHaveURL(/\/app\/products(?:\?.*)?$/);
     await page.getByLabel('Поиск товаров').fill(sku);
+    await expect(page).toHaveURL(/search=/);
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await expect(page.locator('tbody')).toContainText('990,29 RUB');
     await page.getByRole('link', { name: 'Редактировать товар' }).click();
@@ -83,15 +84,15 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     await page.getByRole('button', { name: 'Добавить подключение' }).click();
     await page.getByLabel('Название', { exact: true }).fill(sku);
     await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-    await expect(page.locator('.account-card').filter({ hasText: sku })).toBeVisible();
-    await page
-        .locator('.account-card')
-        .filter({ hasText: sku })
-        .getByRole('button', { name: 'Редактировать' })
-        .click();
+    await expect(page).toHaveURL(/\/marketplaces\/\d+$/);
+    await expect(page.getByRole('heading', { name: sku, exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Изменить подключение', exact: true }).click();
     await page.getByRole('dialog').getByLabel('Статус').selectOption('disabled');
     await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
-    await expect(page.locator('.account-card').filter({ hasText: sku })).toContainText('Отключено');
+    await expect(
+        page.getByRole('status').filter({ hasText: 'Подключение сохранено' }),
+    ).toBeVisible();
+    await page.getByRole('link', { name: '← Все подключения' }).click();
     await page.getByLabel('Поиск подключений').fill(sku);
     await expect(page.locator('.account-card')).toHaveCount(1);
     await page.getByLabel('Фильтр статуса').selectOption('active');
@@ -99,9 +100,9 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     await page.getByLabel('Фильтр статуса').selectOption('disabled');
     await expect(page.locator('.account-card')).toHaveCount(1);
     await page.locator('.account-card').getByRole('link', { name: 'Открыть размещения' }).click();
-    await expect(page).toHaveURL(/marketplace_account_id=/);
-    await expect(page.locator('.filter-context')).toContainText('подключение #');
-    await page.getByRole('button', { name: 'Сбросить фильтры' }).click();
+    await expect(page).toHaveURL(/tab=products/);
+    await expect(page.getByRole('heading', { name: 'Каталог товаров', exact: true })).toBeVisible();
+    await page.goto('/app/marketplace-stocks');
     await expect(page.locator('tbody tr').first()).toBeVisible();
     const sorted = page.waitForResponse(
         (r) => r.url().includes('/api/v1/stocks?') && r.url().includes('sort=price_minor'),

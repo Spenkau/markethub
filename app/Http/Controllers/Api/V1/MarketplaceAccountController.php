@@ -8,9 +8,11 @@ use App\Http\Requests\Api\V1\MarketplaceAccountRequest;
 use App\Http\Resources\Api\V1\MarketplaceAccountResource;
 use App\Models\MarketplaceAccount;
 use App\Services\CatalogQuery;
+use App\Services\Marketplaces\ConnectionReadService;
 use App\Services\Marketplaces\ConnectionService;
 use App\Services\Marketplaces\ProviderRegistry;
 use App\Support\OrganizationContext;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class MarketplaceAccountController extends Controller
@@ -31,7 +33,17 @@ class MarketplaceAccountController extends Controller
             $query->where('name', 'ilike', '%'.$request->validated('search').'%');
         }
 
-        return MarketplaceAccountResource::collection($catalog->paginate($query, $request, ['id' => 'id', 'name' => 'name', 'created_at' => 'created_at']));
+        $page = $catalog->paginate($query, $request, ['id' => 'id', 'name' => 'name', 'created_at' => 'created_at']);
+        app(ConnectionReadService::class)->attach($page->getCollection());
+
+        return MarketplaceAccountResource::collection($page);
+    }
+
+    public function probe(Request $request, ConnectionService $connections)
+    {
+        Gate::authorize('create', MarketplaceAccount::class);
+
+        return response()->json(['data' => $connections->probe(OrganizationContext::id(), $request->all())]);
     }
 
     public function store(MarketplaceAccountRequest $request, ConnectionService $connections)

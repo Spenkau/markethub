@@ -109,7 +109,7 @@ async function select(event: Event) {
             </nav>
             <div class="sidebar-note">
                 <span class="status-dot"></span>Каталог и наличие
-                <p>Подключения пока не обмениваются данными с маркетплейсами.</p>
+                <p>Shopify импортирует данные. Wildberries и Ozon доступны в demo.</p>
             </div>
             <div class="sidebar-footer">MarketHub <span>Рабочий кабинет</span></div>
         </aside>

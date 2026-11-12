@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\SessionController;
+use App\Http\Controllers\Api\V1\CatalogController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\GoodsReceiptController;
 use App\Http\Controllers\Api\V1\MarketplaceAccountController;
@@ -61,6 +62,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::get('auth/me', [SessionController::class, 'me']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::patch('organizations/active', [OrganizationController::class, 'select']);
+    Route::get('catalog', [CatalogController::class, 'index']);
+    Route::get('catalog/{kind}/{id}', [CatalogController::class, 'show'])->whereNumber('id');
     Route::get('products/export', [ExportController::class, 'products']);
     Route::get('stocks/export', [ExportController::class, 'stocks']);
     Route::apiResource('products', ProductController::class)->except('update');
@@ -70,6 +73,7 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::get('marketplace-accounts/{marketplaceAccount}/sync-runs/{run}', [MarketplaceSyncController::class, 'show']);
     Route::get('marketplace-accounts/{marketplaceAccount}/sync-status', [MarketplaceSyncController::class, 'status']);
     Route::post('marketplace-listings/{marketplaceListing}/refresh', [MarketplaceSyncController::class, 'refresh']);
+    Route::post('marketplace-connections/check', [MarketplaceAccountController::class, 'probe'])->middleware('throttle:10,1');
     Route::get('marketplace-providers', [MarketplaceAccountController::class, 'providers']);
     Route::post('marketplace-accounts/{marketplaceAccount}/check', [MarketplaceAccountController::class, 'check']);
     Route::post('marketplace-accounts/{marketplaceAccount}/disconnect', [MarketplaceAccountController::class, 'disconnect']);
