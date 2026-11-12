@@ -2,7 +2,10 @@
 
 use App\Jobs\SyncMarketplace;
 use App\Models\MarketplaceAccount;
+use App\Models\MarketplaceSyncRun;
 use App\Services\Marketplaces\CatalogMappingService;
+use App\Services\Marketplaces\ExternalInventorySnapshot;
+use App\Services\Marketplaces\MarketplaceInventoryService;
 use App\Services\Marketplaces\SyncDispatcher;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +25,11 @@ $data = json_decode($argv[1], true, flags: JSON_THROW_ON_ERROR);
 DB::select("SELECT set_config('application_name', ?, false)", [$argv[2]]);
 $account = MarketplaceAccount::withoutGlobalScopes()->findOrFail($data['account']);
 try {
-    if ($data['action'] === 'job') {
+    if ($data['action'] === 'inventory') {
+        $run = MarketplaceSyncRun::withoutGlobalScopes()->findOrFail($data['run']);
+        app(MarketplaceInventoryService::class)->snapshots($account, $run, $data['listing'], [new ExternalInventorySnapshot('concurrent', true, $data['quantity'], [], null, '2026-11-12T12:00:00Z')]);
+        echo json_encode(['status' => 200]);
+    } elseif ($data['action'] === 'job') {
         SyncTestProvider::$pauseMs = 2000;
         config(['marketplaces.fixture_listing' => $data['listing'] ?? null, 'marketplaces.assert_no_transaction' => true]);
         (new SyncMarketplace($data['run']))->handle();

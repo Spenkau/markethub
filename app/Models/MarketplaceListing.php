@@ -7,6 +7,7 @@ use App\Support\CatalogRules;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Validator;
 
 class MarketplaceListing extends Model
@@ -14,6 +15,11 @@ class MarketplaceListing extends Model
     use BelongsToOrganization, HasFactory;
 
     protected $fillable = ['product_id', 'marketplace_account_id', 'external_id', 'external_sku', 'price_minor', 'currency', 'stock_quantity', 'status'];
+
+    public function inventoryLevels(): HasMany
+    {
+        return $this->hasMany(MarketplaceInventoryLevel::class);
+    }
 
     protected function casts(): array
     {

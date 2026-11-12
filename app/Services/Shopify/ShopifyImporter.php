@@ -5,6 +5,7 @@ namespace App\Services\Shopify;
 use App\Models\MarketplaceAccount;
 use App\Models\MarketplaceSyncRun;
 use App\Services\Marketplaces\MarketplaceImportService;
+use App\Services\Marketplaces\MarketplaceInventoryService;
 use App\Services\Marketplaces\ProviderRegistry;
 use App\Services\Marketplaces\SyncException;
 use Illuminate\Support\Facades\DB;
@@ -26,8 +27,14 @@ class ShopifyImporter
 
     public function execute(MarketplaceAccount $account, MarketplaceSyncRun $run): void
     {
-        $started = now();
-        $this->check($account);
+        try {
+            $this->check($account);
+        } catch (ShopifyException $e) {
+            if ($run->sync_inventory) {
+                app(MarketplaceInventoryService::class)->stale($account, $run, $run->target_listing_id, 'api_error');
+            }
+            throw $e;
+        }
         if ($run->target_listing_id) {
             $this->target($account, $run);
 
@@ -38,6 +45,9 @@ class ShopifyImporter
             try {
                 $this->products($account, $run);
             } catch (ShopifyException $e) {
+                if ($run->sync_inventory) {
+                    app(MarketplaceInventoryService::class)->stale($account, $run, $run->target_listing_id, 'api_error');
+                }
                 if ($e->retryable) {
                     throw $e;
                 }
@@ -52,6 +62,9 @@ class ShopifyImporter
                 }
                 $this->inventory($account, $run);
             } catch (ShopifyException $e) {
+                if ($run->sync_inventory) {
+                    app(MarketplaceInventoryService::class)->stale($account, $run, $run->target_listing_id, 'api_error');
+                }
                 if ($e->retryable) {
                     throw $e;
                 }
@@ -73,9 +86,9 @@ class ShopifyImporter
         }
         $variant = $data['productVariant'];
         if ($variant === null) {
-            $run->guardedWrite(function () use ($listing) {
+            $run->guardedWrite(function () use ($listing, $account, $run) {
                 DB::table('marketplace_listings')->where('id', $listing->id)->update(['source_status' => 'deleted', 'status' => 'inactive', 'stock_quantity' => null, 'source_synced_at' => now()->toIso8601String()]);
-                DB::table('shopify_inventory_levels')->where('marketplace_listing_id', $listing->id)->update(['is_current' => false]);
+                app(MarketplaceInventoryService::class)->stale($account, $run, $listing->id, 'source_deleted');
             });
             $run->recordResult('variant', $listing->external_id, 'updated');
         } else {
@@ -171,8 +184,8 @@ GQL;
             if ($verify['productVariant'] !== null) {
                 throw new SyncException('source_changed', true);
             }
-            $run->guardedWrite(function () use ($listing) {
-                DB::table('shopify_inventory_levels')->where('organization_id', $listing->organization_id)->where('marketplace_listing_id', $listing->id)->update(['is_current' => false]);
+            $run->guardedWrite(function () use ($listing, $account, $run) {
+                app(MarketplaceInventoryService::class)->stale($account, $run, $listing->id, 'source_deleted');
                 DB::table('marketplace_listings')->where('organization_id', $listing->organization_id)->where('id', $listing->id)->update(['source_status' => 'deleted', 'status' => 'inactive', 'stock_quantity' => null]);
             });
         }
@@ -181,57 +194,34 @@ GQL;
     private function inventory(MarketplaceAccount $account, MarketplaceSyncRun $run): void
     {
         $query = 'query Locations($after: String) { locations(first: 100, after: $after, includeInactive: true, includeLegacy: true) { nodes { id name isActive } pageInfo { hasNextPage endCursor } } }';
+        $store = app(MarketplaceInventoryService::class);
+        $normalizer = app(ProviderRegistry::class)->get('shopify');
         foreach ($this->pages($account, $run, $query, 'locations') as $location) {
-            $run->guardedWrite(fn () => DB::table('shopify_locations')->updateOrInsert(['marketplace_account_id' => $account->id, 'external_id' => $location['id']], [
-                'organization_id' => $account->organization_id, 'name' => $location['name'], 'is_active' => $location['isActive'], 'source_synced_at' => now()->toIso8601String(), 'seen_run' => $run->reconcile_token,
-            ]));
+            $store->location($account, $run, $normalizer->normalizeLocation($location, now()->toIso8601String()));
         }
-        $run->guardedWrite(fn () => DB::table('shopify_locations')->where('organization_id', $account->organization_id)->where('marketplace_account_id', $account->id)->where('seen_run', '<>', $run->reconcile_token)->update(['is_active' => false]));
-        DB::table('marketplace_listings')->where('organization_id', $account->organization_id)->where('marketplace_account_id', $account->id)->whereNotNull('source_data')->where('source_status', '<>', 'deleted')->when($run->target_listing_id, fn ($q) => $q->where('id', $run->target_listing_id))->orderBy('id')->chunkById(100, function ($listings) use ($account, $run) {
+        $store->reconcileLocations($account, $run, true);
+        DB::table('marketplace_listings')->where('organization_id', $account->organization_id)->where('marketplace_account_id', $account->id)->whereNotNull('source_data')->where('source_status', '<>', 'deleted')->when($run->target_listing_id, fn ($q) => $q->where('id', $run->target_listing_id))->orderBy('id')->chunkById(100, function ($listings) use ($account, $run, $store, $normalizer) {
             foreach ($listings as $listing) {
                 try {
                     $source = json_decode($listing->source_data, true, flags: JSON_THROW_ON_ERROR);
                     $itemId = $source['variant']['inventoryItem']['id'];
                     $tracked = $source['variant']['inventoryItem']['tracked'];
-                    $total = 0;
-                    $known = $tracked;
-                    $seen = false;
                     $query = 'query Levels($id: ID!, $after: String) { inventoryItem(id: $id) { tracked inventoryLevels(first: 100, after: $after) { nodes { id updatedAt location { id } quantities(names: ["available", "on_hand", "incoming", "committed"]) { name quantity } } pageInfo { hasNextPage endCursor } } } }';
                     // Read current tracked on every sync, including inventory-only runs.
                     $run->heartbeat();
                     $info = $this->client->query($account, 'query Item($id: ID!) { inventoryItem(id: $id) { tracked } }', ['id' => $itemId]);
-                    if (! isset($info['inventoryItem'])) {
+                    if (! isset($info['inventoryItem']) || ! is_bool($info['inventoryItem']['tracked'] ?? null)) {
                         throw new ShopifyException('invalid_data');
                     }
                     $tracked = (bool) $info['inventoryItem']['tracked'];
-                    $known = $tracked;
                     foreach ($this->pages($account, $run, $query, 'inventoryItem.inventoryLevels', ['id' => $itemId]) as $level) {
-                        $location = DB::table('shopify_locations')->where('marketplace_account_id', $account->id)->where('external_id', $level['location']['id'])->first();
-                        if (! $location) {
-                            throw new ShopifyException('invalid_data');
-                        }
-                        $quantities = array_column($level['quantities'], 'quantity', 'name');
-                        $available = $tracked ? ($quantities['available'] ?? null) : null;
-                        if ($location->is_active) {
-                            $seen = true;
-                            $known = $known && $available !== null;
-                            $total += $available ?? 0;
-                        }
-                        $run->guardedWrite(fn () => DB::table('shopify_inventory_levels')->updateOrInsert(['marketplace_listing_id' => $listing->id, 'shopify_location_id' => $location->id], [
-                            'organization_id' => $account->organization_id, 'marketplace_account_id' => $account->id, 'inventory_item_id' => $itemId, 'tracked' => $tracked,
-                            'available' => $available, 'on_hand' => $tracked ? ($quantities['on_hand'] ?? null) : null,
-                            'incoming' => $tracked ? ($quantities['incoming'] ?? null) : null, 'committed' => $tracked ? ($quantities['committed'] ?? null) : null,
-                            'source_updated_at' => $level['updatedAt'], 'source_synced_at' => now()->toIso8601String(), 'seen_run' => $run->reconcile_token, 'is_current' => (bool) $location->is_active,
-                        ]));
+                        $store->snapshots($account, $run, $listing->id, [$normalizer->normalizeInventory($level, $tracked, now()->toIso8601String(), ['inventory_item_id' => $itemId])]);
                     }
-                    // Only a successfully paginated item may invalidate its old location snapshots.
-                    $run->guardedWrite(function () use ($listing, $run, $seen, $known, $total, $itemId) {
-                        DB::table('shopify_inventory_levels')->where('marketplace_listing_id', $listing->id)->where('seen_run', '<>', $run->reconcile_token)->update(['is_current' => false]);
-                        $run->heartbeat();
-                        DB::table('marketplace_listings')->where('id', $listing->id)->update(['stock_quantity' => $seen && $known && $total >= 0 ? $total : null]);
-                        $run->recordResult('inventory', $itemId);
-                    });
+                    // Reconcile only after every page for this variant succeeded.
+                    $store->reconcileListing($account, $run, $listing->id, true);
+                    $run->recordResult('inventory', $itemId);
                 } catch (ShopifyException $e) {
+                    $store->stale($account, $run, $listing->id, 'api_error');
                     if ($e->reason !== 'invalid_data') {
                         throw $e;
                     }

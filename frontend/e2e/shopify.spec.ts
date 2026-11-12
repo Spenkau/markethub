@@ -248,3 +248,123 @@ test('первый импорт требует подтверждения, ре�
         await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
     ).toBe(true);
 });
+
+test('общие остатки различают локации, неизвестное наличие и информационную связь склада', async ({
+    page,
+}) => {
+    const list = (data: unknown[]) => ({
+        data,
+        meta: { total: data.length, current_page: 1, last_page: 1, per_page: 20 },
+        links: { first: '', last: '', prev: null, next: null },
+    });
+    const account = {
+        id: 15,
+        name: 'Shopify Inventory',
+        marketplace: 'shopify',
+        is_demo: false,
+        status: 'active',
+    };
+    const base = {
+        id: 103,
+        marketplace_account_id: 15,
+        marketplace_account: account,
+        product: null,
+        source_title: 'External Board',
+        external_sku: 'EXT-SKU',
+        price_minor: 100,
+        currency: 'USD',
+        status: 'active',
+        inventory_origin: 'external_snapshot',
+    };
+    const rows = [
+        {
+            ...base,
+            inventory_level_id: 1,
+            marketplace_location_id: 11,
+            location_name: 'Main',
+            stock_quantity: 0,
+            is_current: true,
+            tracked: true,
+        },
+        {
+            ...base,
+            inventory_level_id: 2,
+            marketplace_location_id: 12,
+            location_name: 'Remote',
+            stock_quantity: null,
+            is_current: false,
+            tracked: true,
+        },
+    ];
+    const mapping: unknown[] = [];
+    await page.route('**/api/v1/**', async (route) => {
+        const url = new URL(route.request().url()),
+            path = url.pathname;
+        if (path.endsWith('/auth/me'))
+            return route.fulfill({
+                json: { data: { id: 1, name: 'User', active_organization_id: 1 } },
+            });
+        if (path.endsWith('/organizations'))
+            return route.fulfill({ json: list([{ id: 1, name: 'Org' }]) });
+        if (path.endsWith('/onboarding'))
+            return route.fulfill({
+                json: {
+                    data: {
+                        preferences: { auto_start: false, checklist_collapsed: true },
+                        progress: [],
+                    },
+                },
+            });
+        if (path.endsWith('/marketplace-accounts')) return route.fulfill({ json: list([account]) });
+        if (path.endsWith('/warehouses'))
+            return route.fulfill({ json: list([{ id: 8, name: 'Local Main' }]) });
+        if (path.endsWith('/locations'))
+            return route.fulfill({
+                json: {
+                    data: [
+                        {
+                            id: 11,
+                            marketplace_account_id: 15,
+                            name: 'Main',
+                            is_active: true,
+                            warehouse_id: null,
+                        },
+                        {
+                            id: 12,
+                            marketplace_account_id: 15,
+                            name: 'Remote',
+                            is_active: true,
+                            warehouse_id: null,
+                        },
+                    ],
+                },
+            });
+        if (path.endsWith('/mapping')) {
+            mapping.push(route.request().postDataJSON().warehouse_id);
+            return route.fulfill({ json: { data: {} } });
+        }
+        if (path.endsWith('/stocks')) {
+            const loc = url.searchParams.get('location_id');
+            return route.fulfill({
+                json: list(
+                    loc ? rows.filter((r) => String(r.marketplace_location_id) === loc) : rows,
+                ),
+            });
+        }
+        return route.fulfill({ json: { data: [] } });
+    });
+    await page.goto('/app/marketplace-stocks');
+    await expect(page.getByText('External Board', { exact: true })).toHaveCount(2);
+    await expect(page.getByRole('table').getByText('Неизвестно', { exact: true })).toBeVisible();
+    await expect(page.getByText('Устаревший снимок', { exact: true })).toBeVisible();
+    await expect(page.getByText('0 шт.', { exact: true })).toBeVisible();
+    await page.getByLabel('Подключение', { exact: true }).selectOption('15');
+    await page.getByLabel('Внешняя локация', { exact: true }).selectOption('11');
+    await expect(page.getByText('External Board', { exact: true })).toHaveCount(1);
+    await page.getByLabel('Сопоставление склада', { exact: true }).selectOption('8');
+    await page.getByRole('button', { name: 'Сохранить связь', exact: true }).click();
+    await expect.poll(() => mapping).toEqual([8]);
+    await page.getByLabel('Сопоставление склада', { exact: true }).selectOption('');
+    await page.getByRole('button', { name: 'Сохранить связь', exact: true }).click();
+    await expect.poll(() => mapping).toEqual([8, null]);
+});

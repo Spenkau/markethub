@@ -139,3 +139,19 @@ Endpoints интеграции, настройки, схема данных и �
 ## Общая синхронизация площадок (TASK9)
 
 Общие sync, sync-runs, sync-status и listing refresh endpoints, параметры и ограничения описаны в [отчёте TASK9](architecture/marketplace-sync-task9.md). Legacy Shopify API использует ту же историю.
+
+
+## Внешние локации и остатки (TASK10)
+
+`GET /marketplace-inventory` и `GET /stocks` возвращают строки по внешним локациям. Shopify берётся только из canonical levels; demo WB/Ozon остаётся одной строкой на размещение без локации. `stock_quantity` может быть NULL, 0 или отрицательным. Значения устаревших снимков сохраняются вместе с `is_current=false` и `stale_reason`.
+
+Общие маршруты под `/api/v1`:
+
+- `GET /marketplace-accounts/{account}/locations` — все локации выбранного подключения и информационная связь склада.
+- `GET /marketplace-accounts/{account}/inventory` — остатки подключения с пагинацией.
+- `PATCH /marketplace-locations/{location}/mapping` — `{ "warehouse_id": 123 }` или null для отмены.
+- `GET /marketplace-inventory`, `GET /stocks`, `GET /stocks/export` — одинаковые фильтры остатков.
+
+Фильтры: `marketplace` (alias `provider`), `marketplace_account_id`, `location_id`, `product_id`, `search` (нормализованное внешнее название, SKU, barcode и локальные поля), `mapping=mapped|unmapped`, `origin`, `is_current`, `tracked`, `location_active`, `stock=zero|low|positive|negative|unknown`, `status`, page/per_page (максимум 100). Сортировка: id/price_minor/stock_quantity/created_at и direction. ID строки — прежний listing ID; для уникального ключа строки используйте пару listing ID + inventory_level_id.
+
+Mapping не проводит складских операций и не разрешает запись в Shopify. Credentials, raw source и произвольная metadata снимка не сериализуются в общий API. `quantities` содержит дополнительные нормализованные количества. Legacy Shopify API сохраняет `shopify_location_id`, available/on_hand/incoming/committed и прежний формат ответа. XLSX сохраняет прежние 13 столбцов и дополняет их локацией, происхождением, актуальностью, tracked state и временем снимка.

@@ -12,7 +12,7 @@ use Closure;
 use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
-class ShopifyProvider implements MarketplaceProvider
+class ShopifyProvider implements InventorySourceNormalizer, MarketplaceProvider
 {
     public function definition(): array
     {
@@ -59,6 +59,31 @@ class ShopifyProvider implements MarketplaceProvider
                 $account->forceFill(['shopify_client_id' => $credentials['client_id'], 'shopify_client_secret' => $credentials['client_secret']]);
             }
         };
+    }
+
+    public function normalizeLocation(array $raw, string $syncedAt): ExternalLocation
+    {
+        if (! is_string($raw['id'] ?? null) || ! is_string($raw['name'] ?? null) || ! is_bool($raw['isActive'] ?? null)) {
+            throw new ShopifyException('invalid_data');
+        }
+
+        return new ExternalLocation($raw['id'], $raw['name'], $raw['isActive'], $syncedAt);
+    }
+
+    public function normalizeInventory(array $raw, bool $tracked, string $syncedAt, array $context = []): ExternalInventorySnapshot
+    {
+        if (! is_string($raw['location']['id'] ?? null) || ! is_array($raw['quantities'] ?? null)) {
+            throw new ShopifyException('invalid_data');
+        }
+        $quantities = [];
+        foreach ($raw['quantities'] as $quantity) {
+            if (! is_string($quantity['name'] ?? null) || ! (is_int($quantity['quantity'] ?? null) || array_key_exists('quantity', $quantity) && $quantity['quantity'] === null)) {
+                throw new ShopifyException('invalid_data');
+            }
+            $quantities[$quantity['name']] = $quantity['quantity'];
+        }
+
+        return new ExternalInventorySnapshot($raw['location']['id'], $tracked, $quantities['available'] ?? null, $quantities, $raw['updatedAt'] ?? null, $syncedAt, ['inventory_item_id' => $context['inventory_item_id'] ?? null, 'inventory_level_id' => $raw['id'] ?? null]);
     }
 
     private function normalize(MarketplaceAccount $account, array $raw, string $syncedAt): array

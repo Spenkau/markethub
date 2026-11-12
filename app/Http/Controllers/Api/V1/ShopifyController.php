@@ -128,7 +128,7 @@ class ShopifyController extends Controller
         $this->authorizeAccount($marketplaceAccount);
         $row = $this->sourceListing($marketplaceAccount, $listing);
         $source = json_decode($row->source_data, true);
-        $levels = DB::table('shopify_inventory_levels as i')->join('shopify_locations as loc', 'loc.id', '=', 'i.shopify_location_id')->where('i.organization_id', OrganizationContext::id())->where('i.marketplace_listing_id', $row->id)->select('i.*', 'loc.name as location_name')->orderBy('i.id')->get();
+        $levels = DB::table('marketplace_inventory_levels as i')->join('marketplace_locations as loc', 'loc.id', '=', 'i.marketplace_location_id')->where('i.organization_id', OrganizationContext::id())->where('i.marketplace_listing_id', $row->id)->select('i.*', 'i.marketplace_location_id as shopify_location_id', 'loc.name as location_name')->orderBy('i.id')->get();
 
         return response()->json(['data' => [...(array) $row, 'source_data' => $source, 'admin_url' => 'https://'.$marketplaceAccount->shop_domain.'/admin/products/'.basename($source['product']['id']), 'levels' => $levels, 'active_run' => MarketplaceSyncRun::query()->where('organization_id', $marketplaceAccount->organization_id)->where('marketplace_account_id', $marketplaceAccount->id)->whereIn('status', ['queued', 'running'])->where(fn ($q) => $q->where('scope', 'account')->orWhere('target_listing_id', $listing))->first()]]);
     }
@@ -153,10 +153,10 @@ class ShopifyController extends Controller
     public function inventory(ShopifyIndexRequest $request, MarketplaceAccount $marketplaceAccount)
     {
         $this->authorizeAccount($marketplaceAccount);
-        $query = DB::table('shopify_inventory_levels as i')->join('shopify_locations as loc', 'loc.id', '=', 'i.shopify_location_id')
-            ->join('marketplace_listings as l', 'l.id', '=', 'i.marketplace_listing_id')
+        $query = DB::table('marketplace_inventory_levels as i')->join('marketplace_locations as loc', 'loc.id', '=', 'i.marketplace_location_id')
+            ->join('marketplace_listings as l', 'l.id', '=', 'i.marketplace_listing_id')->leftJoin('marketplace_products as p', 'p.id', '=', 'l.marketplace_product_id')
             ->where('i.organization_id', OrganizationContext::id())->where('i.marketplace_account_id', $marketplaceAccount->id)
-            ->select('i.*', 'loc.name as location_name', 'l.external_sku', 'l.product_id')->selectRaw("l.source_data->'product'->>'title' as title");
+            ->select('i.*', 'i.marketplace_location_id as shopify_location_id', 'loc.name as location_name', 'l.external_sku', 'l.product_id')->addSelect('p.title');
         if ($request->filled('location_id')) {
             $query->where('loc.id', $request->integer('location_id'));
         }
@@ -165,7 +165,7 @@ class ShopifyController extends Controller
         }
         if ($request->filled('search')) {
             $search = '%'.$request->validated('search').'%';
-            $query->where(fn ($q) => $q->where('l.external_sku', 'ilike', $search)->orWhereRaw("l.source_data->'product'->>'title' ILIKE ?", [$search]));
+            $query->where(fn ($q) => $q->where('l.external_sku', 'ilike', $search)->orWhere('p.title', 'ilike', $search)->orWhere('l.barcode', 'ilike', $search));
         }
 
         return $this->page($query->orderBy('i.id'), $request);
@@ -175,7 +175,7 @@ class ShopifyController extends Controller
     {
         $this->authorizeAccount($marketplaceAccount);
 
-        return response()->json(['data' => DB::table('shopify_locations')->where('organization_id', OrganizationContext::id())->where('marketplace_account_id', $marketplaceAccount->id)->orderBy('id')->get()]);
+        return response()->json(['data' => DB::table('marketplace_locations')->where('organization_id', OrganizationContext::id())->where('marketplace_account_id', $marketplaceAccount->id)->orderBy('id')->get()]);
     }
 
     public function runs(ShopifyIndexRequest $request, MarketplaceAccount $marketplaceAccount)

@@ -36,6 +36,8 @@ class ShopifyTest extends TestCase
 
     private bool $failLevels = false;
 
+    private bool $brokenLevelPage = false;
+
     private bool $tracked = true;
 
     private bool $paginate = false;
@@ -135,6 +137,9 @@ class ShopifyTest extends TestCase
             return Http::response(['data' => ['inventoryItem' => ['tracked' => $this->tracked]]]);
         }
         if (str_contains($query, 'query Levels')) {
+            if ($this->brokenLevelPage && ($vars['after'] ?? null)) {
+                return Http::response(['errors' => [['message' => 'denied', 'extensions' => ['code' => 'ACCESS_DENIED']]]]);
+            }
             if ($this->failedLevelRequests > 0) {
                 $this->failedLevelRequests--;
 
@@ -144,7 +149,7 @@ class ShopifyTest extends TestCase
                 return Http::response(['errors' => [['message' => 'denied', 'extensions' => ['code' => 'ACCESS_DENIED']]]]);
             }
 
-            return Http::response(['data' => ['inventoryItem' => ['tracked' => $this->tracked, 'inventoryLevels' => $this->connection([['id' => 'gid://shopify/InventoryLevel/1', 'updatedAt' => '2026-11-12T00:00:00Z', 'location' => ['id' => 'gid://shopify/Location/1'], 'quantities' => [['name' => 'available', 'quantity' => $this->available], ['name' => 'on_hand', 'quantity' => 9], ['name' => 'committed', 'quantity' => 2], ['name' => 'incoming', 'quantity' => 0]]]])]]]);
+            return Http::response(['data' => ['inventoryItem' => ['tracked' => $this->tracked, 'inventoryLevels' => $this->connection([['id' => 'gid://shopify/InventoryLevel/1', 'updatedAt' => '2026-11-12T00:00:00Z', 'location' => ['id' => 'gid://shopify/Location/1'], 'quantities' => [['name' => 'available', 'quantity' => $this->available], ['name' => 'on_hand', 'quantity' => 9], ['name' => 'committed', 'quantity' => 2], ['name' => 'incoming', 'quantity' => 0]]]], $this->brokenLevelPage)]]]);
         }
         throw new \LogicException('Unexpected fake query');
     }
@@ -529,5 +534,24 @@ class ShopifyTest extends TestCase
         $this->travel(61)->seconds();
         (new SyncMarketplace($run->id))->handle();
         $this->assertSame('completed', $run->fresh()->status);
+    }
+
+    public function test_broken_inventory_page_keeps_last_quantities_and_marks_snapshot_stale(): void
+    {
+        $this->sync();
+        $before = DB::table('marketplace_inventory_levels')->orderBy('id')->pluck('available')->all();
+        $this->brokenLevelPage = true;
+        $run = $this->sync();
+        $this->assertSame('partial', $run->status);
+        $this->assertSame($before, DB::table('marketplace_inventory_levels')->orderBy('id')->pluck('available')->all());
+        $this->assertSame(0, DB::table('marketplace_inventory_levels')->where('is_current', true)->count());
+        $this->assertSame(0, DB::table('stock_movements')->count());
+    }
+
+    public function test_negative_shopify_quantity_is_preserved_in_common_api(): void
+    {
+        $this->available = -5;
+        $this->sync();
+        $this->getJson('/api/v1/marketplace-accounts/'.$this->account->id.'/inventory?stock=negative')->assertOk()->assertJsonPath('meta.total', 2)->assertJsonPath('data.0.stock_quantity', -5);
     }
 }

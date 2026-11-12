@@ -9,9 +9,10 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 function php(body: string) {
     const result = spawnSync('C:/tools/php83/php.exe', [], {
         cwd: root,
-        input: `<?php require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); if (!app()->environment('local') || config('database.default') !== 'pgsql') { throw new RuntimeException('Local PostgreSQL required'); } ${body}`,
+        input: `<?php require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); if (!app()->environment('testing') || config('database.default') !== 'pgsql' || !str_ends_with(config('database.connections.pgsql.database'), '_test')) { throw new RuntimeException('Isolated PostgreSQL test database required'); } ${body}`,
         env: {
             ...process.env,
+            APP_ENV: 'testing',
             MARKETHUB_CHECK_EMAIL: email,
             MARKETHUB_CHECK_PASSWORD: password,
             MARKETHUB_CHECK_SKU: sku,
@@ -23,7 +24,7 @@ function php(body: string) {
 }
 test.beforeAll(() =>
     php(
-        `$org = App\\Models\\Organization::firstOrFail(); $user = App\\Models\\User::create(['name'=>'Frontend Check','email'=>getenv('MARKETHUB_CHECK_EMAIL'),'password'=>Illuminate\\Support\\Facades\\Hash::make(getenv('MARKETHUB_CHECK_PASSWORD'))]); $user->organizations()->attach($org->id);`,
+        `Illuminate\\Support\\Facades\\Artisan::call('migrate:fresh', ['--force'=>true]); Illuminate\\Support\\Facades\\Artisan::call('db:seed',['--class'=>'DemoDataSeeder','--force'=>true]); $org = App\\Models\\Organization::firstOrFail(); $user = App\\Models\\User::create(['tour_auto_start'=>false,'name'=>'Frontend Check','email'=>getenv('MARKETHUB_CHECK_EMAIL'),'password'=>Illuminate\\Support\\Facades\\Hash::make(getenv('MARKETHUB_CHECK_PASSWORD'))]); $user->organizations()->attach($org->id);`,
     ),
 );
 test.afterAll(() =>
@@ -35,7 +36,7 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     page,
 }, testInfo) => {
     const runtimeErrors: string[] = [];
-    page.on('pageerror', (error) => runtimeErrors.push(error.message));
+    page.on('pageerror', (error) => runtimeErrors.push(error.stack || error.message));
     await page.goto('/');
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Управляйте продажами');
     await page.screenshot({ path: testInfo.outputPath('landing.png'), fullPage: true });

@@ -25,6 +25,16 @@ class MarketplaceAccount extends Model
 
     protected $hidden = ['shopify_client_id', 'shopify_client_secret'];
 
+    public function locations(): HasMany
+    {
+        return $this->hasMany(MarketplaceLocation::class);
+    }
+
+    public function inventoryLevels(): HasMany
+    {
+        return $this->hasMany(MarketplaceInventoryLevel::class);
+    }
+
     protected function casts(): array
     {
         return ['configuration' => 'array', 'is_demo' => 'boolean', 'shopify_client_id' => 'encrypted', 'shopify_client_secret' => 'encrypted',

@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\V1\Auth\SessionController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\GoodsReceiptController;
 use App\Http\Controllers\Api\V1\MarketplaceAccountController;
+use App\Http\Controllers\Api\V1\MarketplaceInventoryController;
 use App\Http\Controllers\Api\V1\MarketplaceListingController;
 use App\Http\Controllers\Api\V1\MarketplaceSyncController;
 use App\Http\Controllers\Api\V1\OnboardingController;
@@ -78,6 +79,10 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::patch('marketplace-accounts/{marketplaceAccount}', [MarketplaceAccountController::class, 'update']);
     Route::apiResource('marketplace-listings', MarketplaceListingController::class)->parameters(['marketplace-listings' => 'marketplaceListing'])->except('update');
     Route::patch('marketplace-listings/{marketplaceListing}', [MarketplaceListingController::class, 'update']);
+    Route::get('marketplace-accounts/{marketplaceAccount}/locations', [MarketplaceInventoryController::class, 'locations']);
+    Route::get('marketplace-accounts/{marketplaceAccount}/inventory', [MarketplaceInventoryController::class, 'inventory']);
+    Route::patch('marketplace-locations/{marketplaceLocation}/mapping', [MarketplaceInventoryController::class, 'mapping']);
+    Route::get('marketplace-inventory', [MarketplaceInventoryController::class, 'index']);
     Route::get('stocks', StockController::class);
 });
 

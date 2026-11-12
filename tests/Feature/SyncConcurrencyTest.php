@@ -6,7 +6,9 @@ use App\Models\MarketplaceAccount;
 use App\Models\MarketplaceSyncRun;
 use App\Models\Organization;
 use App\Models\Product;
+use App\Services\Marketplaces\ExternalLocation;
 use App\Services\Marketplaces\MarketplaceImportService;
+use App\Services\Marketplaces\MarketplaceInventoryService;
 use App\Services\Marketplaces\SyncDispatcher;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +46,7 @@ class SyncConcurrencyTest extends TestCase
     {
         try {
             // DatabaseMigrations and this cleanup are guarded by Tests\TestCase (_test only).
-            foreach (['marketplace_sync_results', 'marketplace_sync_runs', 'marketplace_listings', 'marketplace_products', 'marketplace_credentials', 'marketplace_accounts'] as $table) {
+            foreach (['marketplace_inventory_levels', 'marketplace_locations', 'marketplace_sync_results', 'marketplace_sync_runs', 'marketplace_listings', 'marketplace_products', 'marketplace_credentials', 'marketplace_accounts'] as $table) {
                 DB::table($table)->delete();
             }
         } finally {
@@ -177,5 +179,21 @@ class SyncConcurrencyTest extends TestCase
         $this->assertSame(1, json_decode($recovery->getOutput(), true)['published']);
         $this->assertSame('published', $run->fresh()->dispatch_state);
         $this->assertDatabaseCount('marketplace_sync_runs', 1);
+    }
+
+    public function test_inventory_writers_overlap_and_keep_one_snapshot_and_location_mapping(): void
+    {
+        $run = app(SyncDispatcher::class)->enqueue($this->account, 'manual', null, true);
+        $run->update(['status' => 'running', 'attempt' => 1, 'reconcile_token' => (string) Str::uuid()]);
+        $store = app(MarketplaceInventoryService::class);
+        $location = $store->location($this->account, $run, new ExternalLocation('concurrent', 'Shared', true, '2026-11-12T12:00:00Z'));
+        $warehouse = DB::table('warehouses')->insertGetId(['organization_id' => $this->account->organization_id, 'name' => 'Main', 'code' => 'MAIN', 'type' => 'own', 'is_active' => true]);
+        DB::table('marketplace_locations')->where('id', $location)->update(['warehouse_id' => $warehouse]);
+        $this->overlapping([['action' => 'inventory', 'run' => $run->id, 'listing' => $this->listing, 'quantity' => -2], ['action' => 'inventory', 'run' => $run->id, 'listing' => $this->listing, 'quantity' => 4]]);
+        $this->assertSame(1, DB::table('marketplace_inventory_levels')->count());
+        $this->assertContains(DB::table('marketplace_inventory_levels')->value('available'), [-2, 4]);
+        $this->assertSame($warehouse, DB::table('marketplace_locations')->value('warehouse_id'));
+        $this->assertSame(0, DB::table('warehouse_stocks')->count());
+        $this->assertSame(0, DB::table('stock_movements')->count());
     }
 }

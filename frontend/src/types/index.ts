@@ -50,6 +50,16 @@ export interface MarketplaceAccount {
 }
 export type AccountInput = Pick<MarketplaceAccount, 'name' | 'marketplace' | 'status' | 'is_demo'>;
 export interface Stock {
+    inventory_level_id?: number | null;
+    marketplace_location_id?: number | null;
+    location_name?: string | null;
+    location_active?: boolean | null;
+    warehouse_id?: number | null;
+    tracked?: boolean | null;
+    is_current?: boolean | null;
+    inventory_origin?: string;
+    inventory_source_synced_at?: string | null;
+    external_sku?: string | null;
     id: number;
     source_title?: string | null;
     source_synced_at?: string | null;

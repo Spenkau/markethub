@@ -17,14 +17,18 @@ const accounts = ref<MarketplaceAccount[]>([]);
 const channel = ref(String(useRoute().query.marketplace || ''));
 const connection = ref(String(useRoute().query.marketplace_account_id || ''));
 onMounted(async () => {
-    let page = 1;
-    let last = 1;
-    do {
-        const response = await marketplacesApi.list({ page, per_page: 100 });
-        accounts.value.push(...response.data);
-        last = response.meta.last_page;
-        page++;
-    } while (page <= last);
+    try {
+        let page = 1;
+        let last = 1;
+        do {
+            const response = await marketplacesApi.list({ page, per_page: 100 });
+            accounts.value.push(...response.data);
+            last = response.meta.last_page;
+            page++;
+        } while (page <= last);
+    } catch (e) {
+        error.value = message(e);
+    }
 });
 const route = useRoute(),
     search = ref(''),

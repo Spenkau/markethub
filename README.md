@@ -146,3 +146,5 @@ composer check-platform-reqs
 
 
 Общая синхронизация, recovery и проверка миграции: [TASK9](docs/architecture/marketplace-sync-task9.md). Windows worker: `scripts/marketplace-workers.ps1`; проверка окружения: `php artisan marketplaces:sync-runtime`.
+
+Общие внешние локации, остатки, фильтры и информационный mapping склада: [TASK10](docs/architecture/marketplace-inventory-task10.md).
