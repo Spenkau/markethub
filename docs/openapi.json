@@ -3,7 +3,7 @@
   "info": {
     "title": "MarketHub REST API",
     "version": "1.0.0",
-    "description": "Cookie-based Sanctum authentication; all business data is scoped to the active organization. No browser API-token issuance. Prices use integer minor units."
+    "description": "Cookie-based Sanctum authentication; all business data is scoped to the active organization. Catalog/marketplace prices use integer minor units. Procurement prices and totals use exact decimal strings in major currency units."
   },
   "servers": [
     {
@@ -2192,6 +2192,58 @@
             }
           }
         ]
+      },
+      "post": {
+        "summary": "Create organization, attach current user and activate it",
+        "tags": [
+          "Onboarding"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "409": {
+            "description": "Automatic prompts disabled, cooldown active, conflicting creation key or stale progress transition"
+          },
+          "422": {
+            "description": "Invalid fields; user_id and organization_id are prohibited"
+          },
+          "200": {
+            "description": "Identical creation request replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizationResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrganizationInput"
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/organizations/active": {
@@ -2685,6 +2737,2082 @@
           }
         },
         "parameters": []
+      }
+    },
+    "/api/v1/products/export": {
+      "get": {
+        "tags": [],
+        "summary": "Export products to Excel",
+        "description": "Export all matching rows in the current organization using list filters and sorting. Pagination is ignored. Requires membership and viewAny permission.",
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "name",
+                "sku",
+                "price_minor",
+                "created_at"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "0",
+                "1"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "XLSX download",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Membership or permission required"
+          },
+          "422": {
+            "description": "Invalid filters or sorting"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/stocks/export": {
+      "get": {
+        "tags": [],
+        "summary": "Export stocks to Excel",
+        "description": "Export all matching rows in the current organization using list filters and sorting. Pagination is ignored. Requires membership and viewAny permission.",
+        "parameters": [
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "price_minor",
+                "stock_quantity",
+                "created_at"
+              ]
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "marketplace_account_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "marketplace",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "wildberries",
+                "ozon"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "active",
+                "inactive"
+              ]
+            }
+          },
+          {
+            "name": "stock",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zero",
+                "low"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "XLSX download",
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Membership or permission required"
+          },
+          "422": {
+            "description": "Invalid filters or sorting"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ]
+      }
+    },
+    "/api/v1/warehouses": {
+      "get": {
+        "summary": "List organization warehouses",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehousePage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "own",
+                "marketplace"
+              ]
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "name",
+                "code",
+                "created_at"
+              ],
+              "default": "id"
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create warehouse",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "409": {
+            "description": "Unique constraint or operation ID reused with different data"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehouseInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/warehouses/{warehouse}": {
+      "get": {
+        "summary": "Get warehouse",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          }
+        },
+        "parameters": [
+          {
+            "name": "warehouse",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Edit or deactivate warehouse",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "409": {
+            "description": "Unique constraint or operation ID reused with different data"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          }
+        },
+        "parameters": [
+          {
+            "name": "warehouse",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WarehousePatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/warehouse-stocks": {
+      "get": {
+        "summary": "List physical warehouse stocks",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseStockPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "warehouse_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "stock",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zero",
+                "low"
+              ]
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "quantity",
+                "updated_at"
+              ],
+              "default": "id"
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "asc"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/warehouse-stocks/summary": {
+      "get": {
+        "summary": "Physical stock summary",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventorySummaryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "warehouse_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "stock",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "zero",
+                "low"
+              ]
+            }
+          }
+        ],
+        "description": "Position/product/unit totals respect stock filters. Warehouse counts always cover the entire organization. Marketplace listing stock is excluded."
+      }
+    },
+    "/api/v1/stock-movements": {
+      "get": {
+        "summary": "Read immutable stock movements",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "warehouse_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "product_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "receipt",
+                "write_off",
+                "transfer",
+                "inventory"
+              ]
+            }
+          },
+          {
+            "name": "operation_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "date_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "date_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "id",
+                "occurred_at"
+              ],
+              "default": "occurred_at"
+            }
+          },
+          {
+            "name": "direction",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "default": "desc"
+            }
+          }
+        ]
+      }
+    },
+    "/api/v1/stock-operations": {
+      "post": {
+        "summary": "Apply atomic stock operation",
+        "tags": [
+          "Inventory"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockOperationResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "422": {
+            "description": "Invalid input"
+          },
+          "409": {
+            "description": "Unique constraint or operation ID reused with different data"
+          },
+          "200": {
+            "description": "Previously committed operation replay",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockOperationResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StockOperationInput"
+              }
+            }
+          }
+        },
+        "description": "Transactions and PostgreSQL row/advisory locks. No negative stock. Transfers create two movements atomically. Same UUID, normalized payload and actor: 200 replay with unchanged balances; conflicting reuse: 409. Corrections require a new operation; movement timestamps are server controlled."
+      }
+    },
+    "/api/v1/suppliers": {
+      "get": {
+        "summary": "List suppliers",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "is_active",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create supplier",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/suppliers/{supplier}": {
+      "get": {
+        "summary": "Get supplier",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "supplier",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Edit or archive supplier",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "supplier",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierPatch"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete unused supplier",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success"
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "supplier",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/purchase-orders": {
+      "get": {
+        "summary": "List purchase orders",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "ordered",
+                "partially_received",
+                "received",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "supplier_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "warehouse_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create draft purchase order",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderInput"
+              }
+            }
+          }
+        },
+        "description": "201 on first creation; 200 with meta.replayed=true on an identical retry. Prices and totals use exact decimal strings."
+      }
+    },
+    "/api/v1/purchase-orders/{purchaseOrder}": {
+      "get": {
+        "summary": "Purchase order with quantities and lines",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "purchaseOrder",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Replace purchase draft",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "purchaseOrder",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseOrderPatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/purchase-orders/{purchaseOrder}/order": {
+      "post": {
+        "summary": "Mark draft as ordered",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "purchaseOrder",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/purchase-orders/{purchaseOrder}/cancel": {
+      "post": {
+        "summary": "Cancel purchase and pending receipts; received goods remain",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseOrderResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "purchaseOrder",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/goods-receipts": {
+      "get": {
+        "summary": "List goods receipts",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptPage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "per_page",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "confirmed",
+                "cancelled"
+              ]
+            }
+          },
+          {
+            "name": "purchase_order_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "supplier_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          },
+          {
+            "name": "warehouse_id",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            }
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create receipt draft without changing stock",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          },
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptResponse"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoodsReceiptInput"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/goods-receipts/{goodsReceipt}": {
+      "get": {
+        "summary": "Get receipt document and stock movement links",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "goodsReceipt",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      },
+      "patch": {
+        "summary": "Replace receipt draft",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "goodsReceipt",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoodsReceiptPatch"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/goods-receipts/{goodsReceipt}/confirm": {
+      "post": {
+        "summary": "Atomically confirm receipt using StockOperationService",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "goodsReceipt",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ],
+        "description": "Purchase and receipt row locks serialize confirmations. Validates all remaining quantities and posts existing warehouse receipt operations in the same transaction. Repeated confirmation returns 200 with meta.replayed=true and no additional stock changes."
+      }
+    },
+    "/api/v1/goods-receipts/{goodsReceipt}/cancel": {
+      "post": {
+        "summary": "Cancel unconfirmed receipt",
+        "tags": [
+          "Procurement"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GoodsReceiptResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "403": {
+            "description": "Organization membership or permission required"
+          },
+          "404": {
+            "description": "Not found in current organization"
+          },
+          "409": {
+            "description": "Invalid state, dependent documents, or conflicting idempotency key"
+          },
+          "422": {
+            "description": "Invalid fields, foreign references or quantity above remaining order quantity"
+          }
+        },
+        "parameters": [
+          {
+            "name": "goodsReceipt",
+            "in": "path",
+            "schema": {
+              "type": "integer",
+              "format": "int64",
+              "minimum": 1
+            },
+            "required": true
+          }
+        ]
+      }
+    },
+    "/api/v1/onboarding": {
+      "get": {
+        "summary": "Current user learning settings and all tour versions",
+        "tags": [
+          "Onboarding"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "409": {
+            "description": "Automatic prompts disabled, cooldown active, conflicting creation key or stale progress transition"
+          },
+          "422": {
+            "description": "Invalid fields; user_id and organization_id are prohibited"
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/checklist": {
+      "get": {
+        "summary": "Actual setup steps of current organization",
+        "tags": [
+          "Onboarding"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChecklistResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "409": {
+            "description": "Automatic prompts disabled, cooldown active, conflicting creation key or stale progress transition"
+          },
+          "422": {
+            "description": "Invalid fields; user_id and organization_id are prohibited"
+          }
+        },
+        "description": "Tenant scoped and policy aware; read-only. Completing a tour cannot complete a business step."
+      }
+    },
+    "/api/v1/onboarding/preferences": {
+      "patch": {
+        "summary": "Update personal training preferences",
+        "tags": [
+          "Onboarding"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TourPreferences"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "409": {
+            "description": "Automatic prompts disabled, cooldown active, conflicting creation key or stale progress transition"
+          },
+          "422": {
+            "description": "Invalid fields; user_id and organization_id are prohibited"
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "auto_start": {
+                    "type": "boolean"
+                  },
+                  "checklist_collapsed": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/onboarding/tours/{tour}": {
+      "patch": {
+        "summary": "Persist progress event for a tour/version of current user",
+        "tags": [
+          "Onboarding"
+        ],
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/TourProgress"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthenticated"
+          },
+          "409": {
+            "description": "Automatic prompts disabled, cooldown active, conflicting creation key or stale progress transition"
+          },
+          "422": {
+            "description": "Invalid fields; user_id and organization_id are prohibited"
+          }
+        },
+        "parameters": [
+          {
+            "name": "tour",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[a-zA-Z0-9_-]{1,80}$"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TourProgressEvent"
+              }
+            }
+          }
+        },
+        "description": "Tour definitions live in frontend TypeScript. Backend stores per-user metadata. offer is throttled to 15 minutes after an offer/start and respects next_eligible_at and auto_start. Unanswered offer is eligible again after 24 hours; snooze interval defaults to 24 hours. Completed/skipped/in_progress cannot be offered automatically. Version rows are independent; global preference always applies."
       }
     }
   },
@@ -3603,6 +5731,1728 @@
           "message",
           "errors"
         ]
+      },
+      "WarehouseInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "own",
+              "marketplace"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "code",
+          "type",
+          "is_active"
+        ]
+      },
+      "WarehousePatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "own",
+              "marketplace"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Warehouse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "code": {
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "own",
+              "marketplace"
+            ]
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "stocks_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "code",
+          "type",
+          "is_active"
+        ]
+      },
+      "WarehouseStock": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/Warehouse"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "sku": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "sku"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "warehouse_id",
+          "product_id",
+          "quantity",
+          "warehouse",
+          "product"
+        ]
+      },
+      "StockMovement": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "operation_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "receipt",
+              "write_off",
+              "transfer",
+              "inventory"
+            ]
+          },
+          "quantity_delta": {
+            "type": "integer"
+          },
+          "quantity_before": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "quantity_after": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/Warehouse"
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "sku": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "sku"
+            ]
+          },
+          "user": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "document": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "goods_receipt"
+                ]
+              },
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "purchase_order_id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "description": "Actual related receipt, null for manual stock operations; relation obeys organization scope."
+          }
+        },
+        "required": [
+          "id",
+          "operation_id",
+          "type",
+          "quantity_delta",
+          "quantity_before",
+          "quantity_after",
+          "occurred_at",
+          "warehouse",
+          "product",
+          "user"
+        ]
+      },
+      "StockOperationInput": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Stable client-generated UUID for retries. Reuse with a different payload or actor yields 409."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "receipt",
+              "write_off",
+              "transfer",
+              "inventory"
+            ]
+          },
+          "warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "destination_warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "description": "Required only for transfer, must differ from source."
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647,
+            "description": "Positive delta magnitude; for inventory the absolute counted quantity, including zero."
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 2000
+          }
+        },
+        "required": [
+          "operation_id",
+          "type",
+          "warehouse_id",
+          "product_id",
+          "quantity"
+        ]
+      },
+      "StockOperationResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "operation_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "movements": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/StockMovement"
+                }
+              }
+            }
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
+      "InventorySummary": {
+        "type": "object",
+        "properties": {
+          "warehouses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "active_warehouses": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "positions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "products": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "units": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "zero_positions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "low_positions": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "WarehousePage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Warehouse"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
+      },
+      "WarehouseResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Warehouse"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "WarehouseStockPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WarehouseStock"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
+      },
+      "WarehouseStockResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/WarehouseStock"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "StockMovementPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockMovement"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
+      },
+      "StockMovementResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/StockMovement"
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "InventorySummaryResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InventorySummary"
+          }
+        }
+      },
+      "SupplierInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "contact_name": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 50,
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "inn": {
+            "type": "string",
+            "maxLength": 30,
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "SupplierPatch": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "contact_name": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 50,
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "inn": {
+            "type": "string",
+            "maxLength": 30,
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          }
+        }
+      },
+      "Supplier": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "contact_name": {
+            "type": "string",
+            "maxLength": 255,
+            "nullable": true
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 50,
+            "nullable": true
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "nullable": true
+          },
+          "inn": {
+            "type": "string",
+            "maxLength": 30,
+            "nullable": true
+          },
+          "comment": {
+            "type": "string",
+            "maxLength": 5000,
+            "nullable": true
+          },
+          "is_active": {
+            "type": "boolean",
+            "default": true
+          },
+          "purchase_orders_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "is_active"
+        ]
+      },
+      "PurchaseOrderItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "sku": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "sku"
+            ]
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "received_quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "remaining_quantity": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "unit_price": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d{2}$",
+            "description": "Exact decimal string, not minor units and never a JSON float."
+          },
+          "line_total": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d{2}$",
+            "description": "Exact decimal string, not minor units and never a JSON float."
+          }
+        },
+        "required": [
+          "id",
+          "product_id",
+          "quantity",
+          "received_quantity",
+          "remaining_quantity",
+          "unit_price",
+          "line_total"
+        ]
+      },
+      "PurchaseOrder": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "supplier_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "supplier": {
+            "$ref": "#/components/schemas/Supplier"
+          },
+          "warehouse": {
+            "$ref": "#/components/schemas/Warehouse"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "ordered",
+              "partially_received",
+              "received",
+              "cancelled"
+            ]
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "RUB",
+              "USD",
+              "EUR",
+              "BYN",
+              "KZT",
+              "CNY",
+              "GBP"
+            ]
+          },
+          "total_amount": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d{2}$",
+            "description": "Exact decimal string, not minor units and never a JSON float."
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "ordered_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "received_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "receipts_count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 2147483647
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrderItem"
+            }
+          },
+          "creator": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "supplier_id",
+          "warehouse_id",
+          "currency",
+          "total_amount"
+        ]
+      },
+      "PurchaseOrderInput": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Stable key for idempotent creation; keep it when retrying a lost response."
+          },
+          "supplier_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "RUB",
+              "USD",
+              "EUR",
+              "BYN",
+              "KZT",
+              "CNY",
+              "GBP"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 5000
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 1
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                },
+                "unit_price": {
+                  "type": "string",
+                  "pattern": "^\\d{1,10}(\\.\\d{1,2})?$",
+                  "description": "Purchase price in major currency units, up to 9999999999.99."
+                }
+              },
+              "required": [
+                "product_id",
+                "quantity",
+                "unit_price"
+              ]
+            }
+          }
+        },
+        "required": [
+          "request_id",
+          "supplier_id",
+          "warehouse_id",
+          "currency",
+          "items"
+        ]
+      },
+      "PurchaseOrderPatch": {
+        "type": "object",
+        "properties": {
+          "supplier_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "warehouse_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "currency": {
+            "type": "string",
+            "enum": [
+              "RUB",
+              "USD",
+              "EUR",
+              "BYN",
+              "KZT",
+              "CNY",
+              "GBP"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 5000
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "product_id": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 1
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                },
+                "unit_price": {
+                  "type": "string",
+                  "pattern": "^\\d{1,10}(\\.\\d{1,2})?$",
+                  "description": "Purchase price in major currency units, up to 9999999999.99."
+                }
+              },
+              "required": [
+                "product_id",
+                "quantity",
+                "unit_price"
+              ]
+            }
+          }
+        },
+        "required": [
+          "supplier_id",
+          "warehouse_id",
+          "currency",
+          "items"
+        ],
+        "description": "Replaces the full draft, including all lines. Only draft orders may be edited."
+      },
+      "GoodsReceiptItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "purchase_order_item_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "product_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "product": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              },
+              "sku": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "sku"
+            ]
+          },
+          "quantity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "stock_movement_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1,
+            "nullable": true
+          },
+          "stock_operation_id": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "purchase_order_item_id",
+          "product_id",
+          "quantity"
+        ]
+      },
+      "GoodsReceipt": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "purchase_order_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "purchase_order": {
+            "$ref": "#/components/schemas/PurchaseOrder"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "confirmed",
+              "cancelled"
+            ]
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true
+          },
+          "confirmed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "creator": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              }
+            }
+          },
+          "confirmer": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "nullable": true
+          },
+          "total_quantity": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoodsReceiptItem"
+            }
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "purchase_order_id",
+          "status"
+        ]
+      },
+      "GoodsReceiptInput": {
+        "type": "object",
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "Stable key for idempotent creation; keep it when retrying a lost response."
+          },
+          "purchase_order_id": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 1
+          },
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 5000
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "purchase_order_item_id": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 1
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                }
+              },
+              "required": [
+                "purchase_order_item_id",
+                "quantity"
+              ]
+            }
+          }
+        },
+        "required": [
+          "request_id",
+          "purchase_order_id",
+          "items"
+        ]
+      },
+      "GoodsReceiptPatch": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 5000
+          },
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 100,
+            "items": {
+              "type": "object",
+              "properties": {
+                "purchase_order_item_id": {
+                  "type": "integer",
+                  "format": "int64",
+                  "minimum": 1
+                },
+                "quantity": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 2147483647
+                }
+              },
+              "required": [
+                "purchase_order_item_id",
+                "quantity"
+              ]
+            }
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "description": "Replaces lines of an unconfirmed draft; purchase order cannot change."
+      },
+      "SupplierResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/Supplier"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "SupplierPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Supplier"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
+      },
+      "PurchaseOrderResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/PurchaseOrder"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "PurchaseOrderPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseOrder"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
+      },
+      "GoodsReceiptResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/GoodsReceipt"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "replayed": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "required": [
+          "data"
+        ]
+      },
+      "GoodsReceiptPage": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GoodsReceipt"
+            }
+          },
+          "links": {
+            "type": "object"
+          },
+          "meta": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 0
+              },
+              "per_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "maximum": 100
+              },
+              "current_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              },
+              "last_page": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1
+              }
+            },
+            "required": [
+              "total",
+              "per_page",
+              "current_page",
+              "last_page"
+            ]
+          }
+        },
+        "required": [
+          "data",
+          "links",
+          "meta"
+        ]
+      },
+      "TourPreferences": {
+        "type": "object",
+        "properties": {
+          "auto_start": {
+            "type": "boolean"
+          },
+          "checklist_collapsed": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "auto_start",
+          "checklist_collapsed"
+        ]
+      },
+      "TourProgress": {
+        "type": "object",
+        "properties": {
+          "tour_id": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "completed",
+              "skipped",
+              "snoozed"
+            ]
+          },
+          "step_id": {
+            "type": "string",
+            "maxLength": 100
+          },
+          "step_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 199
+          },
+          "last_started_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "last_offered_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completed_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "next_eligible_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "required": [
+          "tour_id",
+          "version",
+          "status",
+          "step_id",
+          "step_index"
+        ]
+      },
+      "TourProgressEvent": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000000
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "offer",
+              "start",
+              "advance",
+              "complete",
+              "skip",
+              "snooze"
+            ]
+          },
+          "step_id": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "^[a-zA-Z0-9_-]+$"
+          },
+          "step_index": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 199
+          },
+          "automatic": {
+            "type": "boolean",
+            "default": false
+          },
+          "snooze_hours": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 720,
+            "default": 24
+          }
+        },
+        "required": [
+          "version",
+          "action",
+          "step_id",
+          "step_index"
+        ],
+        "description": "Only current user. No user_id, organization_id, client timestamps or status. Server assigns status and dates. Manual start bypasses automatic preference/cooldown."
+      },
+      "OnboardingResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "preferences": {
+                "$ref": "#/components/schemas/TourPreferences"
+              },
+              "progress": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TourProgress"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ChecklistResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "object",
+            "properties": {
+              "organization_id": {
+                "type": "integer",
+                "format": "int64",
+                "minimum": 1,
+                "nullable": true
+              },
+              "completed": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 6
+              },
+              "total": {
+                "type": "integer",
+                "enum": [
+                  6
+                ]
+              },
+              "steps": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "enum": [
+                        "organization",
+                        "warehouse",
+                        "product",
+                        "supplier",
+                        "purchase",
+                        "receipt"
+                      ]
+                    },
+                    "completed": {
+                      "type": "boolean"
+                    },
+                    "can_act": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "description": "Live organization data, never inferred from training progress. Receipt requires a confirmed document; draft receipts do not count."
+      },
+      "CreateOrganizationInput": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "request_id": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "name",
+          "request_id"
+        ],
+        "description": "Creates current user membership and activates new organization; slug is server assigned. Same key/name/membership retries return the existing organization."
       }
     }
   }

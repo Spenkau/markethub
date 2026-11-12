@@ -1,18 +1,50 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\SessionController;
+use App\Http\Controllers\Api\V1\ExportController;
+use App\Http\Controllers\Api\V1\GoodsReceiptController;
 use App\Http\Controllers\Api\V1\MarketplaceAccountController;
 use App\Http\Controllers\Api\V1\MarketplaceListingController;
+use App\Http\Controllers\Api\V1\OnboardingController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\PurchaseOrderController;
 use App\Http\Controllers\Api\V1\StockController;
+use App\Http\Controllers\Api\V1\StockMovementController;
+use App\Http\Controllers\Api\V1\StockOperationController;
+use App\Http\Controllers\Api\V1\SupplierController;
+use App\Http\Controllers\Api\V1\WarehouseController;
+use App\Http\Controllers\Api\V1\WarehouseStockController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
+    Route::get('onboarding', [OnboardingController::class, 'index']);
+    Route::get('onboarding/checklist', [OnboardingController::class, 'checklist']);
+    Route::patch('onboarding/preferences', [OnboardingController::class, 'preferences']);
+    Route::patch('onboarding/tours/{tour}', [OnboardingController::class, 'update'])->where('tour', '[a-zA-Z0-9_-]{1,80}');
+    Route::post('organizations', [OrganizationController::class, 'store']);
+    Route::apiResource('suppliers', SupplierController::class)->except('update');
+    Route::patch('suppliers/{supplier}', [SupplierController::class, 'update']);
+    Route::apiResource('purchase-orders', PurchaseOrderController::class)->parameters(['purchase-orders' => 'purchaseOrder'])->only(['index', 'store', 'show']);
+    Route::patch('purchase-orders/{purchaseOrder}', [PurchaseOrderController::class, 'update']);
+    Route::post('purchase-orders/{purchaseOrder}/order', [PurchaseOrderController::class, 'order']);
+    Route::post('purchase-orders/{purchaseOrder}/cancel', [PurchaseOrderController::class, 'cancel']);
+    Route::apiResource('goods-receipts', GoodsReceiptController::class)->parameters(['goods-receipts' => 'goodsReceipt'])->only(['index', 'store', 'show']);
+    Route::patch('goods-receipts/{goodsReceipt}', [GoodsReceiptController::class, 'update']);
+    Route::post('goods-receipts/{goodsReceipt}/confirm', [GoodsReceiptController::class, 'confirm']);
+    Route::post('goods-receipts/{goodsReceipt}/cancel', [GoodsReceiptController::class, 'cancel']);
+    Route::apiResource('warehouses', WarehouseController::class)->only(['index', 'store', 'show']);
+    Route::patch('warehouses/{warehouse}', [WarehouseController::class, 'update']);
+    Route::get('warehouse-stocks/summary', [WarehouseStockController::class, 'summary']);
+    Route::get('warehouse-stocks', [WarehouseStockController::class, 'index']);
+    Route::get('stock-movements', [StockMovementController::class, 'index']);
+    Route::post('stock-operations', [StockOperationController::class, 'store']);
     Route::get('auth/me', [SessionController::class, 'me']);
     Route::get('organizations', [OrganizationController::class, 'index']);
     Route::patch('organizations/active', [OrganizationController::class, 'select']);
+    Route::get('products/export', [ExportController::class, 'products']);
+    Route::get('stocks/export', [ExportController::class, 'stocks']);
     Route::apiResource('products', ProductController::class)->except('update');
     Route::patch('products/{product}', [ProductController::class, 'update']);
     Route::apiResource('marketplace-accounts', MarketplaceAccountController::class)->parameters(['marketplace-accounts' => 'marketplaceAccount'])->except('update');

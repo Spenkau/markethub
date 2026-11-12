@@ -113,3 +113,17 @@ GET /api/v1/stocks?marketplace=ozon&stock=zero
 Тексты ошибок зависят от локализации, клиент должен опираться на HTTP-код и ключи errors. SQL и пароли в обработчиках конфликтов не раскрываются.
 
 OpenAPI: [openapi.json](openapi.json). Контракты описывают текущее поведение, полноценный frontend, организации/роли сверх членства, заказы и внешние интеграции отсутствуют.
+
+## Физические склады и остатки
+
+Новые endpoints: `GET/POST /api/v1/warehouses`, `GET/PATCH /api/v1/warehouses/{warehouse}`, `GET /api/v1/warehouse-stocks`, `GET /api/v1/warehouse-stocks/summary`, `GET /api/v1/stock-movements`, `POST /api/v1/stock-operations`. Существующий `/api/v1/stocks` продолжает возвращать остатки размещений на маркетплейсах.
+
+Тела операций, фильтры, атомарность, UUID для повторных запросов и правила неизменяемой истории: [WAREHOUSES.md](WAREHOUSES.md). Спецификация новых маршрутов включена в [openapi.json](openapi.json).
+
+## Закупки и поставки
+
+Endpoints `/suppliers`, `/purchase-orders`, `/goods-receipts` под `/api/v1` и операции изменения статусов описаны в [PROCUREMENT.md](PROCUREMENT.md) и [openapi.json](openapi.json). Цены закупок — decimal-строки в основных денежных единицах; этот контракт отличается от price_minor каталога. Оприходование выполняется только POST `/goods-receipts/{id}/confirm` через существующий складской сервис.
+
+## Обучение и реальный чек-лист
+
+`GET /api/v1/onboarding`, `GET /api/v1/onboarding/checklist`, `PATCH /api/v1/onboarding/preferences`, `PATCH /api/v1/onboarding/tours/{tour}`. Прогресс относится к пользователю и версии, а чек-лист читает данные текущей организации. Добавлен `POST /api/v1/organizations` с name/request_id для выполнения первого этапа. Полный контракт и правила автоматических предложений: [ONBOARDING.md](ONBOARDING.md), схемы: [openapi.json](openapi.json).

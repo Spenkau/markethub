@@ -15,15 +15,8 @@ class ProductController extends Controller
     public function index(IndexRequest $request, CatalogQuery $catalog)
     {
         Gate::authorize('viewAny', Product::class);
-        $query = Product::query()->withCount('listings');
-        if ($request->filled('search')) {
-            $query->where(fn ($query) => $query->where('name', 'ilike', '%'.$request->validated('search').'%')->orWhere('sku', 'ilike', '%'.$request->validated('search').'%'));
-        }
-        if ($request->has('is_active')) {
-            $query->where('is_active', $request->boolean('is_active'));
-        }
 
-        return ProductResource::collection($catalog->paginate($query, $request, ['id' => 'id', 'name' => 'name', 'sku' => 'sku', 'price_minor' => 'base_price_minor', 'created_at' => 'created_at']));
+        return ProductResource::collection($catalog->productQuery($request)->paginate($request->integer('per_page', 20))->withQueryString());
     }
 
     public function store(ProductRequest $request)

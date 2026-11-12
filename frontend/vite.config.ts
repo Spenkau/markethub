@@ -2,7 +2,7 @@ import { defineConfig, type ProxyOptions } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import tailwindcss from '@tailwindcss/vite';
 const proxy: ProxyOptions = {
-    target: 'http://markethub.test',
+    target: process.env.MARKETHUB_API_TARGET || 'http://markethub.test',
     changeOrigin: true,
     configure(server) {
         server.on('proxyReq', (req) => {

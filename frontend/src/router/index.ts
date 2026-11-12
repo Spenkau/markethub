@@ -16,6 +16,11 @@ export const router = createRouter({
                     meta: { title: 'Обзор' },
                 },
                 {
+                    path: 'help',
+                    component: () => import('../pages/HelpPage.vue'),
+                    meta: { title: 'Помощь и обучение' },
+                },
+                {
                     path: 'products',
                     component: () => import('../pages/ProductsPage.vue'),
                     meta: { title: 'Товары' },
@@ -36,14 +41,34 @@ export const router = createRouter({
                     meta: { title: 'Карточка товара' },
                 },
                 {
+                    path: 'purchases',
+                    component: () => import('../pages/ProcurementPage.vue'),
+                    meta: { title: 'Закупки и поставки' },
+                },
+                {
+                    path: 'purchases/receipts/:id',
+                    component: () => import('../pages/GoodsReceiptPage.vue'),
+                    meta: { title: 'Документ приёмки' },
+                },
+                {
+                    path: 'purchases/:id',
+                    component: () => import('../pages/PurchaseOrderPage.vue'),
+                    meta: { title: 'Закупка' },
+                },
+                {
                     path: 'marketplaces',
                     component: () => import('../pages/MarketplacesPage.vue'),
                     meta: { title: 'Маркетплейсы' },
                 },
                 {
+                    path: 'marketplace-stocks',
+                    component: () => import('../pages/MarketplaceStocksPage.vue'),
+                    meta: { title: 'Остатки маркетплейсов' },
+                },
+                {
                     path: 'stocks',
                     component: () => import('../pages/StocksPage.vue'),
-                    meta: { title: 'Остатки' },
+                    meta: { title: 'Склады и остатки' },
                 },
             ],
         },

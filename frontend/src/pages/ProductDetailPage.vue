@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import TourLauncher from '../features/onboarding/components/TourLauncher.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { productsApi } from '../api/products';
@@ -24,6 +25,7 @@ async function load() {
 onMounted(load);
 </script>
 <template>
+    <TourLauncher tour-id="products" />
     <RouterLink to="/app/products" class="text-link">← Все товары</RouterLink
     ><PageState :loading="loading" :error="error" @retry="load">
         <template v-if="product">
@@ -35,6 +37,13 @@ onMounted(load);
                 </div>
                 <RouterLink :to="`/app/products/${product.id}/edit`" class="primary"
                     >Редактировать</RouterLink
+                >
+            </div>
+            <div class="inventory-actions">
+                <RouterLink
+                    :to="`/app/purchases?create=purchase&product_id=${product.id}`"
+                    class="secondary"
+                    >Создать закупку с товаром</RouterLink
                 >
             </div>
             <section class="panel detail-panel">
@@ -56,8 +65,15 @@ onMounted(load);
                     <dt>Обновлён</dt>
                     <dd>{{ new Date(product.updated_at).toLocaleString('ru-RU') }}</dd>
                 </dl>
-                <RouterLink :to="`/app/stocks?product_id=${product.id}`" class="text-link"
-                    >Посмотреть остатки товара →</RouterLink
+                <RouterLink
+                    :to="`/app/marketplace-stocks?product_id=${product.id}`"
+                    class="text-link"
+                    >Остатки на площадках →</RouterLink
+                >
+                <RouterLink
+                    :to="`/app/stocks?product_id=${product.id}`"
+                    class="text-link detail-stock-link"
+                    >Складские остатки товара →</RouterLink
                 >
             </section>
         </template>

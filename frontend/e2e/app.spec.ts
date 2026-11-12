@@ -44,7 +44,7 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     await page.getByLabel('Email', { exact: true }).fill(email);
     await page.getByLabel('Пароль', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Войти в кабинет' }).click();
-    await expect(page).toHaveURL(/\/app\/products$/);
+    await expect(page).toHaveURL(/\/app\/products(?:\?.*)?$/);
     await expect(page.locator('tbody tr').first()).toBeVisible();
     const withoutCsrf = await page.request.post('/api/v1/products', { data: {} });
     expect(withoutCsrf.status()).toBe(419);
@@ -55,14 +55,14 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     await page.getByLabel('SKU').fill(sku);
     await page.getByLabel('Цена', { exact: true }).fill('1990,29');
     await page.getByRole('button', { name: 'Сохранить товар' }).click();
-    await expect(page).toHaveURL(/\/app\/products$/);
+    await expect(page).toHaveURL(/\/app\/products(?:\?.*)?$/);
     await page.getByLabel('Поиск товаров').fill(sku);
     await expect(page.locator('tbody tr')).toHaveCount(1);
     await expect(page.locator('tbody')).toContainText('990,29 RUB');
     await page.getByRole('link', { name: 'Редактировать товар' }).click();
     await page.getByLabel('Название', { exact: true }).fill('Изменённый товар');
     await page.getByRole('button', { name: 'Сохранить товар' }).click();
-    await expect(page).toHaveURL(/\/app\/products$/);
+    await expect(page).toHaveURL(/\/app\/products(?:\?.*)?$/);
     await page.getByLabel('Поиск товаров').fill(sku);
     await page.getByRole('link', { name: 'Изменённый товар', exact: true }).click();
     await expect(page.getByRole('heading', { level: 1 })).toHaveText('Изменённый товар');
@@ -88,17 +88,48 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
         .filter({ hasText: sku })
         .getByRole('button', { name: 'Редактировать' })
         .click();
-    await page.getByLabel('Статус').selectOption('disabled');
+    await page.getByRole('dialog').getByLabel('Статус').selectOption('disabled');
     await page.getByRole('button', { name: 'Сохранить', exact: true }).click();
     await expect(page.locator('.account-card').filter({ hasText: sku })).toContainText('Отключено');
-    await page.goto('/app/stocks?stock=zero');
+    await page.getByLabel('Поиск подключений').fill(sku);
+    await expect(page.locator('.account-card')).toHaveCount(1);
+    await page.getByLabel('Фильтр статуса').selectOption('active');
+    await expect(page.getByRole('heading', { name: 'Пока ничего нет' })).toBeVisible();
+    await page.getByLabel('Фильтр статуса').selectOption('disabled');
+    await expect(page.locator('.account-card')).toHaveCount(1);
+    await page.locator('.account-card').getByRole('link', { name: 'Открыть размещения' }).click();
+    await expect(page).toHaveURL(/marketplace_account_id=/);
+    await expect(page.locator('.filter-context')).toContainText('подключение #');
+    await page.getByRole('button', { name: 'Сбросить фильтры' }).click();
+    await expect(page.locator('tbody tr').first()).toBeVisible();
+    const sorted = page.waitForResponse(
+        (r) => r.url().includes('/api/v1/stocks?') && r.url().includes('sort=price_minor'),
+    );
+    await page.getByLabel('Сортировка остатков').selectOption('price_minor');
+    expect((await sorted).status()).toBe(200);
+    await page.goto('/app/marketplace-stocks?stock=zero');
     await expect(page.getByLabel('Остаток', { exact: true })).toHaveValue('zero');
     await page.getByLabel('Остаток', { exact: true }).selectOption('');
     await expect(page.locator('tbody tr').first()).toBeVisible();
     await page.goto('/app');
     await expect(page.locator('.stat-card')).toHaveCount(4);
     await expect(page.locator('.stat-card').first().locator('strong')).not.toHaveText('');
+    await expect(page.getByRole('heading', { name: 'Остатки на площадках' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Недавно добавлены' })).toBeVisible();
+    const total = await page.request.get('/api/v1/products?per_page=1');
+    const totalBody = await total.json();
+    await expect(page.locator('.stat-card').first().locator('strong')).toHaveText(
+        totalBody.meta.total.toLocaleString('ru-RU'),
+    );
     await page.screenshot({ path: testInfo.outputPath('dashboard.png'), fullPage: true });
+    await page.route('**/api/v1/products?**', (route) =>
+        route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }),
+    );
+    await page.getByRole('button', { name: 'Обновить обзор' }).click();
+    await expect(page.getByRole('heading', { name: 'Не удалось загрузить данные' })).toBeVisible();
+    await page.unroute('**/api/v1/products?**');
+    await page.getByRole('button', { name: 'Повторить', exact: true }).click();
+    await expect(page.locator('.stat-card')).toHaveCount(4);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: 'Открыть меню' }).click();
     await expect(page.locator('.sidebar')).toHaveClass(/opened/);

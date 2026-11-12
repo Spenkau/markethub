@@ -1,9 +1,12 @@
-﻿<script setup lang="ts">
-import { onMounted, onBeforeUnmount, ref, watch } from 'vue';
+<script setup lang="ts">
+import TourLauncher from '../features/onboarding/components/TourLauncher.vue';
+import { computed, onMounted, onBeforeUnmount, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { Search, Plus, Pencil, Trash2, Package as PackageIcon } from 'lucide-vue-next';
 import { productsApi } from '../api/products';
+import { downloadExcel } from '../api/exports';
 import { message } from '../api/client';
+import { shortDate } from '../utils/date';
 import { money } from '../utils/money';
 import type { Page, Product } from '../types';
 import PageState from '../components/ui/PageState.vue';
@@ -12,6 +15,7 @@ const route = useRoute(),
     search = ref(''),
     active = ref(String(route.query.is_active || '')),
     sort = ref('id'),
+    perPage = ref(20),
     direction = ref('asc'),
     page = ref(1),
     result = ref<Page<Product>>(),
@@ -20,6 +24,43 @@ const route = useRoute(),
     actionError = ref(''),
     deleting = ref<Product | null>(null),
     busy = ref(false);
+
+const createdProduct = ref<Product>();
+async function loadCreated() {
+    createdProduct.value = undefined;
+    if (route.query.created) {
+        try {
+            createdProduct.value = await productsApi.get(String(route.query.created));
+        } catch {
+            /* Ignore invalid context; never invent a saved product. */
+        }
+    }
+}
+onMounted(loadCreated);
+watch(() => route.query.created, loadCreated);
+const exporting = ref(false),
+    exportError = ref('');
+function filters() {
+    return {
+        search: search.value || undefined,
+        is_active: active.value || undefined,
+        sort: sort.value,
+        direction: direction.value,
+    };
+}
+async function exportExcel() {
+    if (exporting.value) return;
+    exporting.value = true;
+    exportError.value = '';
+    try {
+        await downloadExcel('products', filters());
+    } catch (e) {
+        exportError.value = message(e);
+    } finally {
+        exporting.value = false;
+    }
+}
+
 let timer: ReturnType<typeof setTimeout>;
 let sequence = 0;
 async function load() {
@@ -29,10 +70,8 @@ async function load() {
     try {
         const data = await productsApi.list({
             page: page.value,
-            search: search.value || undefined,
-            is_active: active.value || undefined,
-            sort: sort.value,
-            direction: direction.value,
+            per_page: perPage.value,
+            ...filters(),
         });
         if (current === sequence) result.value = data;
     } catch (e) {
@@ -41,7 +80,14 @@ async function load() {
         if (current === sequence) loading.value = false;
     }
 }
-watch([search, active, sort, direction], () => {
+const pageActive = computed(() => result.value?.data.filter((p) => p.is_active).length ?? 0);
+function resetFilters() {
+    search.value = '';
+    active.value = '';
+    sort.value = 'id';
+    direction.value = 'asc';
+}
+watch([search, active, sort, direction, perPage], () => {
     page.value = 1;
     clearTimeout(timer);
     timer = setTimeout(load, 300);
@@ -80,12 +126,55 @@ async function remove() {
             </h1>
             <p>Управляйте ассортиментом и ценами.</p>
         </div>
-        <RouterLink to="/app/products/new" class="primary"
+        <RouterLink to="/app/products/new" class="primary" data-tour="create-product"
             ><Plus :size="18" />Добавить товар</RouterLink
         >
     </div>
-    <section class="panel">
+    <TourLauncher tour-id="products" />
+    <p v-if="exportError" class="alert" role="alert">{{ exportError }}</p>
+    <div class="list-summary">
+        <div>
+            <span class="summary-icon"><PackageIcon :size="19" /></span>
+            <div>
+                <strong>{{ result?.meta.total ?? '—' }}</strong
+                ><span>Товаров по условиям</span>
+            </div>
+        </div>
+        <div>
+            <strong>{{ loading ? '—' : pageActive }}</strong
+            ><span>Активных на странице</span>
+        </div>
+        <div>
+            <strong>{{
+                loading ? '—' : (result?.data.filter((p) => !p.listings_count).length ?? 0)
+            }}</strong
+            ><span>Без размещений на странице</span>
+        </div>
+    </div>
+    <div v-if="createdProduct" class="next-action-banner" role="status">
+        <span>Товар «{{ createdProduct.name }}» сохранён. Что дальше?</span
+        ><RouterLink :to="`/app/stocks?product_id=${createdProduct.id}`" class="text-link"
+            >К складским остаткам →</RouterLink
+        ><RouterLink
+            :to="`/app/purchases?create=purchase&product_id=${createdProduct.id}`"
+            class="text-link"
+            >Создать закупку →</RouterLink
+        >
+    </div>
+    <section class="panel" data-tour="product-list">
+        <div class="section-heading padded">
+            <div>
+                <h2>Каталог товаров</h2>
+                <p>Цены, публикации и состояние ассортимента</p>
+            </div>
+            <button v-if="search || active" class="text-link" @click="resetFilters">
+                Сбросить фильтры
+            </button>
+        </div>
         <div class="toolbar">
+            <button class="secondary" :disabled="exporting" @click="exportExcel">
+                {{ exporting ? 'Экспортируем…' : 'Экспорт в Excel' }}
+            </button>
             <div class="search-input">
                 <Search :size="18" /><input
                     v-model="search"
@@ -109,7 +198,12 @@ async function remove() {
                 <option value="desc">По убыванию</option>
             </select>
         </div>
-        <PageState :loading="loading" :error="error" :empty="!result?.data.length" @retry="load">
+        <PageState :loading="loading" :error="error" :empty="!result?.data.length" @retry="load"
+            ><template #emptyActions
+                ><RouterLink to="/app/products/new" class="secondary"
+                    >Создать первый товар</RouterLink
+                ></template
+            >
             <div class="table-scroll">
                 <table>
                     <thead>
@@ -119,6 +213,7 @@ async function remove() {
                             <th>Цена</th>
                             <th>Статус</th>
                             <th>Размещения</th>
+                            <th>Обновлён</th>
                             <th><span class="sr-only">Действия</span></th>
                         </tr>
                     </thead>
@@ -141,7 +236,19 @@ async function remove() {
                                     product.is_active ? 'Активен' : 'Неактивен'
                                 }}</span>
                             </td>
-                            <td>{{ product.listings_count ?? '—' }}</td>
+                            <td>
+                                <RouterLink
+                                    :to="`/app/marketplace-stocks?product_id=${product.id}`"
+                                    class="badge"
+                                    :class="product.listings_count ? 'success' : 'warning'"
+                                    >{{
+                                        product.listings_count
+                                            ? `${product.listings_count} размещений`
+                                            : 'Не размещён'
+                                    }}</RouterLink
+                                >
+                            </td>
+                            <td class="nowrap muted">{{ shortDate(product.updated_at) }}</td>
                             <td>
                                 <div class="row-actions">
                                     <RouterLink
@@ -164,13 +271,22 @@ async function remove() {
                         </tr>
                     </tbody>
                 </table>
-            </div> </PageState
-        ><PaginationBar
-            v-if="result"
-            :meta="result.meta"
-            :disabled="loading"
-            @change="changePage"
-        />
+            </div>
+        </PageState>
+        <div class="table-footer">
+            <label class="page-size"
+                >На странице<select v-model="perPage" aria-label="Товаров на странице">
+                    <option :value="20">20</option>
+                    <option :value="50">50</option>
+                    <option :value="100">100</option>
+                </select></label
+            ><PaginationBar
+                v-if="result"
+                :meta="result.meta"
+                :disabled="loading"
+                @change="changePage"
+            />
+        </div>
     </section>
     <div v-if="deleting" class="modal-backdrop" @keydown.esc="!busy && (deleting = null)">
         <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="delete-title">

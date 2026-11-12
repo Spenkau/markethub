@@ -2,9 +2,18 @@
 
 namespace App\Providers;
 
+use App\Models\GoodsReceipt;
+use App\Models\GoodsReceiptItem;
 use App\Models\MarketplaceAccount;
 use App\Models\MarketplaceListing;
 use App\Models\Product;
+use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
+use App\Models\StockMovement;
+use App\Models\Supplier;
+use App\Models\Warehouse;
+use App\Models\WarehouseStock;
+use App\Policies\InventoryPolicy;
 use App\Policies\OrganizationBusinessPolicy;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -35,6 +44,12 @@ class AppServiceProvider extends ServiceProvider
                 Limit::perMinute(30)->by($request->ip()),
             ];
         });
+        foreach ([Supplier::class, PurchaseOrder::class, PurchaseOrderItem::class, GoodsReceipt::class, GoodsReceiptItem::class] as $model) {
+            Gate::policy($model, InventoryPolicy::class);
+        }
+        foreach ([Warehouse::class, WarehouseStock::class, StockMovement::class] as $model) {
+            Gate::policy($model, InventoryPolicy::class);
+        }
         foreach ([Product::class, MarketplaceAccount::class, MarketplaceListing::class] as $model) {
             Gate::policy($model, OrganizationBusinessPolicy::class);
         }

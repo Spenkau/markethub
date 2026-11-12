@@ -34,8 +34,10 @@ export interface MarketplaceAccount {
     status: 'demo' | 'active' | 'disabled';
     is_demo: boolean;
     listings_count?: number;
+    created_at?: string;
+    updated_at?: string;
 }
-export type AccountInput = Omit<MarketplaceAccount, 'id' | 'listings_count'>;
+export type AccountInput = Pick<MarketplaceAccount, 'name' | 'marketplace' | 'status' | 'is_demo'>;
 export interface Stock {
     id: number;
     product: Pick<Product, 'id' | 'name' | 'sku'>;

@@ -57,7 +57,7 @@ async function save() {
             return;
         }
         await csrf();
-        await productsApi.save(
+        const response = await productsApi.save(
             {
                 name: form.name,
                 sku: form.sku,
@@ -68,7 +68,11 @@ async function save() {
             },
             id,
         );
-        await router.push('/app/products');
+        await router.push(
+            id
+                ? '/app/products'
+                : { path: '/app/products', query: { created: response.data.data.id } },
+        );
     } catch (e) {
         error.value = message(e);
         if (e instanceof ApiError) fields.value = e.fields;
@@ -94,9 +98,14 @@ async function save() {
                 >Название<input v-model="form.name" required maxlength="255" /><FieldError
                     :errors="fields.name" /></label
             ><label
-                >SKU<input v-model="form.sku" required maxlength="100" /><FieldError
-                    :errors="fields.sku"
-                /><span class="fine-print">Уникальный артикул в вашей организации.</span></label
+                >SKU<input
+                    v-model="form.sku"
+                    data-tour="product-sku"
+                    required
+                    maxlength="100"
+                /><FieldError :errors="fields.sku" /><span class="fine-print"
+                    >Уникальный артикул в вашей организации.</span
+                ></label
             ><label
                 >Описание<textarea v-model="form.description" rows="4" maxlength="10000"></textarea
                 ><FieldError :errors="fields.description"
