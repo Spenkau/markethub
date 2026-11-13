@@ -36,6 +36,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        RateLimiter::for('api-read', fn (Request $request) => Limit::perMinute(300)->by($request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('exports', fn (Request $request) => Limit::perMinute(10)->by($request->user()?->id.'|'.$request->ip()));
+        RateLimiter::for('demo-login', fn (Request $request) => Limit::perMinute(10)->by($request->ip()));
+        Gate::before(function ($user, string $ability) {
+            if ($user->is_demo_access && ! in_array($ability, ['view', 'viewAny'], true)) {
+                return false;
+            }
+
+            return null;
+        });
         RateLimiter::for('login', function (Request $request): array {
             $email = is_string($request->input('email')) ? strtolower(trim($request->input('email'))) : '';
 

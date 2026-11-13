@@ -26,7 +26,7 @@ class UnifiedCatalogPresenter
         return array_values(array_slice(array_filter(array_map(function ($image) {
             $url = is_array($image) ? ($image['url'] ?? '') : $image;
 
-            return is_string($url) && preg_match('~^https?://~i', $url) ? ['url' => $url, 'alt' => is_array($image) ? ($image['altText'] ?? '') : ''] : null;
+            return is_string($url) && preg_match('~^(?:https?://|/demo-assets/[a-z0-9-]+\.svg$)~i', $url) ? ['url' => $url, 'alt' => is_array($image) ? ($image['altText'] ?? '') : ''] : null;
         }, $images)), 0, 12));
     }
 
@@ -71,7 +71,7 @@ class UnifiedCatalogPresenter
             $items = $sources->filter(fn ($l) => $row->kind === 'local' ? $l['product_id'] === $row->entity_id : ($row->kind === 'external_product' ? $l['product_id'] === null && $l['marketplace_product_id'] === $row->entity_id : $l['id'] === $row->entity_id))->values();
             $count = $listings->first(fn ($l) => $row->kind === 'local' ? $l->product_id === $row->entity_id : ($row->kind === 'external_product' ? $l->product_id === null && $l->marketplace_product_id === $row->entity_id : $l->id === $row->entity_id))?->source_count ?? 0;
 
-            return ['key' => $row->kind.':'.$row->entity_id, 'kind' => $row->kind, 'entity_id' => $row->entity_id, 'title' => $row->title, 'sku' => $row->sku, 'price_minor' => $row->price_minor, 'currency' => $row->currency, 'status' => $row->status, 'mapping' => $row->kind === 'local' ? ($count ? 'mapped' : 'local') : 'unmapped', 'images' => $items->pluck('images')->flatten(1)->unique('url')->take(1)->values()->all(), 'sources' => $items->all(), 'sources_count' => (int) $count, 'physical_quantity' => $row->kind === 'local' ? (int) ($physical[$row->entity_id] ?? 0) : null, 'source_synced_at' => $items->pluck('source_synced_at')->filter()->max(), 'updated_at' => $row->updated_at];
+            return ['key' => $row->kind.':'.$row->entity_id, 'kind' => $row->kind, 'entity_id' => $row->entity_id, 'title' => $row->title, 'sku' => $row->sku, 'price_minor' => $row->price_minor, 'currency' => $row->currency, 'status' => $row->status, 'mapping' => $row->kind === 'local' ? ($count ? 'mapped' : 'local') : 'unmapped', 'images' => $items->pluck('images')->flatten(1)->unique('url')->take(1)->values()->all(), 'sources' => $items->all(), 'sources_count' => (int) $count, 'physical_quantity' => $row->kind === 'local' && isset($physical[$row->entity_id]) ? (int) $physical[$row->entity_id] : null, 'source_synced_at' => $items->pluck('source_synced_at')->filter()->max(), 'updated_at' => $row->updated_at];
         });
     }
 

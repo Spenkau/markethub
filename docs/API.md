@@ -2,6 +2,19 @@
 
 Базовый URL: `http://markethub.test/api/v1`. Формат: JSON. Указывайте `Accept: application/json` и для JSON-тел `Content-Type: application/json`.
 
+## Публичное demo (FINAL 1)
+
+`UserResource` в login/me дополнительно возвращает `is_demo_access: boolean`. Это доверенный серверный признак, отсутствующий в mass assignment и публичных операциях назначения прав. Все бизнес-запросы POST/PATCH/PUT/DELETE demo-пользователя получают 403 до model binding и обработчиков; GET/HEAD доступны в рамках организации. Login/logout и получение CSRF-cookie управляют только сессией. Обычные пользователи сохраняют CRUD.
+
+- `GET /auth/demo` → `{ "available": boolean }`, без авторизации. При выключенном/неподготовленном demo — false.
+- `POST /auth/demo` → обычный `data: UserResource`, с CSRF и session regeneration; 503 при недоступности. Не принимает email/id/пароль для выбора учётной записи. Разрешён только явно включённой выделенной БД с единственным помеченным demo-пользователем, demo-организацией и без настоящих подключений/credentials.
+- Общий лимит API: 300 запросов/мин на user+IP; экспорт: 10/мин; demo status/login: 10/мин на IP. При превышении — 429. Существующий password login сохраняет свои ограничения.
+- `/catalog`: `physical_quantity: null` означает отсутствие складских записей, `0` — подтверждённый ноль; положительное значение — сумма физических остатков. Запрос чтения не создаёт записей.
+- Реестр дополнен `shopify_demo` (connection_type=demo, без credentials, sync/check/importer). Это локальные synthetic fixtures, не API-интеграция. Capability `history` разрешает только просмотр истории.
+- В demo Product Tours сохраняют прогресс и настройки в sessionStorage вкладки. Серверные PATCH onboarding также запрещены; общий пользователь не меняется.
+
+Bootstrap, ограничения и результаты проверок: [FINAL 1](architecture/markethub-final-demo-task.md).
+
 ## Сессия Sanctum
 
 ```js

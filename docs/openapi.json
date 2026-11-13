@@ -6911,6 +6911,61 @@
           }
         }
       }
+    },
+    "/api/v1/auth/demo": {
+      "get": {
+        "summary": "Check dedicated public demo availability",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Availability; unconfigured or unsafe environments return false",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "available"
+                  ],
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          }
+        }
+      },
+      "post": {
+        "summary": "Start a read-only synthetic demo session in an explicitly enabled dedicated database",
+        "description": "Requires Sanctum CSRF cookie and X-XSRF-TOKEN. Does not accept a user selector. No credentials or external requests. 10 requests/minute per IP shared with status.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Demo user session regenerated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "419": {
+            "description": "CSRF verification failed"
+          },
+          "429": {
+            "description": "Rate limit exceeded"
+          },
+          "503": {
+            "description": "Public demo is not prepared or deployment is unsafe"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -7269,10 +7324,7 @@
           },
           "marketplace": {
             "type": "string",
-            "enum": [
-              "wildberries",
-              "ozon"
-            ]
+            "description": "Provider code from GET /marketplace-providers; includes shopify_demo synthetic fixtures."
           },
           "status": {
             "type": "string",
@@ -7947,6 +7999,11 @@
             "type": "integer",
             "format": "int64",
             "nullable": true
+          },
+          "is_demo_access": {
+            "type": "boolean",
+            "readOnly": true,
+            "description": "Trusted server-assigned read-only demo access; not publicly assignable."
           }
         },
         "required": [
@@ -7954,7 +8011,8 @@
           "name",
           "email",
           "is_admin",
-          "active_organization_id"
+          "active_organization_id",
+          "is_demo_access"
         ]
       },
       "UserResponse": {
@@ -10043,7 +10101,8 @@
           },
           "physical_quantity": {
             "type": "integer",
-            "nullable": true
+            "nullable": true,
+            "description": "Null when no physical warehouse records exist; zero is a confirmed zero. Never includes external snapshots."
           },
           "images": {
             "type": "array",
@@ -10053,7 +10112,7 @@
               "properties": {
                 "url": {
                   "type": "string",
-                  "format": "uri"
+                  "description": "HTTPS/HTTP image URL or a safe local /demo-assets/*.svg fixture path."
                 },
                 "alt": {
                   "type": "string"

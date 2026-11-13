@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\V1\Auth\SessionController;
 use App\Http\Controllers\Api\V1\CatalogController;
+use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\GoodsReceiptController;
 use App\Http\Controllers\Api\V1\MarketplaceAccountController;
@@ -19,10 +20,12 @@ use App\Http\Controllers\Api\V1\StockOperationController;
 use App\Http\Controllers\Api\V1\SupplierController;
 use App\Http\Controllers\Api\V1\WarehouseController;
 use App\Http\Controllers\Api\V1\WarehouseStockController;
+use App\Http\Middleware\DemoReadOnly;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
+Route::prefix('v1')->middleware(['auth:sanctum', DemoReadOnly::class, 'throttle:api-read'])->group(function (): void {
+    Route::get('dashboard/overview', [DashboardController::class, 'overview']);
     Route::post('shopify/connections', [ShopifyController::class, 'store']);
     Route::prefix('shopify/connections/{marketplaceAccount}')->controller(ShopifyController::class)->group(function () {
         Route::get('', 'show');
@@ -64,8 +67,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function (): void {
     Route::patch('organizations/active', [OrganizationController::class, 'select']);
     Route::get('catalog', [CatalogController::class, 'index']);
     Route::get('catalog/{kind}/{id}', [CatalogController::class, 'show'])->whereNumber('id');
-    Route::get('products/export', [ExportController::class, 'products']);
-    Route::get('stocks/export', [ExportController::class, 'stocks']);
+    Route::get('products/export', [ExportController::class, 'products'])->middleware('throttle:exports');
+    Route::get('stocks/export', [ExportController::class, 'stocks'])->middleware('throttle:exports');
     Route::apiResource('products', ProductController::class)->except('update');
     Route::patch('products/{product}', [ProductController::class, 'update']);
     Route::post('marketplace-accounts/{marketplaceAccount}/sync', [MarketplaceSyncController::class, 'sync']);

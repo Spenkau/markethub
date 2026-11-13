@@ -21,6 +21,7 @@ class User extends Authenticatable
 
     protected $attributes = [
         'is_admin' => false,
+        'is_demo_access' => false,
         'tour_auto_start' => true,
         'onboarding_collapsed' => false,
     ];
@@ -34,6 +35,7 @@ class User extends Authenticatable
     {
         return [
             'is_admin' => 'boolean',
+            'is_demo_access' => 'boolean',
             'tour_auto_start' => 'boolean',
             'onboarding_collapsed' => 'boolean',
             'email_verified_at' => 'datetime',

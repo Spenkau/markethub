@@ -69,7 +69,7 @@ class MarketplaceFoundationTest extends TestCase
 
     public function test_common_connections_registry_and_legacy_wrappers_share_credentials_and_settings(): void
     {
-        $this->getJson('/api/v1/marketplace-providers')->assertOk()->assertJsonCount(3, 'data');
+        $this->getJson('/api/v1/marketplace-providers')->assertOk()->assertJsonCount(4, 'data');
         $this->patchJson('/api/v1/marketplace-accounts/'.$this->account->id, ['sync_frequency' => 'manual', 'sync_inventory' => false])->assertOk();
         $this->patchJson('/api/v1/shopify/connections/'.$this->account->id, ['client_secret' => 'ROTATED-SECRET'])->assertOk();
         $this->assertDatabaseCount('marketplace_accounts', 1);

@@ -70,6 +70,9 @@ class CatalogQuery
         if ($request->has('marketplace')) {
             $query->whereHas('marketplaceAccount', fn ($query) => $query->where('marketplace', $request->validated('marketplace')));
         }
+        if ($request->has('is_demo')) {
+            $query->whereHas('marketplaceAccount', fn ($query) => $query->where('is_demo', $request->boolean('is_demo')));
+        }
         if ($request->filled('mapping')) {
             $request->validated('mapping') === 'unmapped' ? $query->whereNull('marketplace_listings.product_id') : $query->whereNotNull('marketplace_listings.product_id');
         }

@@ -11,6 +11,7 @@ class UserResource extends JsonResource
     public function toArray(Request $request): array
     {
         return ['id' => $this->id, 'name' => $this->name, 'email' => $this->email, 'is_admin' => $this->is_admin,
+            'is_demo_access' => (bool) $this->is_demo_access,
             'active_organization_id' => OrganizationContext::id($this->resource)];
     }
 }

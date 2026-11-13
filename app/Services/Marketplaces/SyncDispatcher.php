@@ -67,11 +67,29 @@ class SyncDispatcher
 
                 return $existing;
             }
-            $run = MarketplaceSyncRun::create(['id' => (string) Str::uuid(), 'organization_id' => $account->organization_id, 'marketplace_account_id' => $account->id, 'provider' => $account->marketplace,
-                'trigger' => ! $account->initial_import_at && $scope === 'account' ? 'initial' : ($trigger === 'automatic' ? 'scheduled' : $trigger),
-                'scope' => $scope, 'target_listing_id' => $listingId, 'target_product_id' => $productId, 'status' => 'queued', 'dispatch_state' => 'pending',
-                'sync_products' => $products, 'sync_inventory' => $inventory,
-                'full_reconcile' => $scope === 'account' && $products && (($options['full_reconcile'] ?? false) || ! $account->last_full_sync_at || $account->last_full_sync_at->lt(now()->subDay()) || ! $account->last_products_synced_at)]);
+            $run = MarketplaceSyncRun::create([
+                'id' => (string) Str::uuid(),
+                'organization_id' => $account->organization_id,
+                'marketplace_account_id' => $account->id,
+                'provider' => $account->marketplace,
+                'trigger' => ! $account->initial_import_at && $scope === 'account'
+                    ? 'initial'
+                    : ($trigger === 'automatic' ? 'scheduled' : $trigger),
+                'scope' => $scope,
+                'target_listing_id' => $listingId,
+                'target_product_id' => $productId,
+                'status' => 'queued',
+                'dispatch_state' => 'pending',
+                'sync_products' => $products,
+                'sync_inventory' => $inventory,
+                'full_reconcile' => $scope === 'account'
+                    && $products
+                    && (($options['full_reconcile'] ?? false)
+                        || ! $account->last_full_sync_at
+                        || $account->last_full_sync_at->lt(now()->subDay())
+                        || ! $account->last_products_synced_at
+                    ),
+            ]);
             DB::afterCommit(fn () => $this->publish($run->id));
 
             return $run->fresh();
@@ -223,7 +241,9 @@ class SyncDispatcher
         }
 
         return match ($account->sync_frequency) {
-            'hourly' => now()->addHour(), 'daily' => now()->addDay(), default => null
+            'hourly' => now()->addHour(),
+            'daily' => now()->addDay(),
+            default => null
         };
     }
 
