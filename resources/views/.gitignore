@@ -1,0 +1,3 @@
+# Keep Laravel's view path available for production cache warmup in the API/SPA app.
+*
+!.gitignore
