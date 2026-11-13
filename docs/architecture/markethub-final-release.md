@@ -70,9 +70,9 @@ Worker согласован с SyncMarketplace: timeout 1800 s, Redis retry_afte
 
 ## GitHub
 
-Подготовлены к включению незакоммиченные dashboard TASK12, безопасное demo FINAL1, визуальный рефакторинг TASK16, fixtures, тесты, шрифты/лицензии, screenshots, deployment и документация. Исключены `tg-bots`, TASKS, env, APP_KEY, credentials, DB backups, node_modules/vendor, reference clone и runtime logs. Чужие каталоги не удалялись.
+В релиз включены dashboard TASK12, безопасное demo FINAL1, визуальный рефакторинг TASK16, fixtures, тесты, шрифты/лицензии, screenshots, deployment и документация. Исключены `tg-bots`, TASKS, env, APP_KEY, credentials, DB backups, node_modules/vendor, reference clone и runtime logs. Чужие каталоги не удалялись.
 
-Исходный `origin/main` после fetch: `92217d7a5c96a65e6f925bb8195318f99fe5b145`. Он является предком текущей `refactor/api-first-postgresql`; dry-run подтвердил возможность обычного fast-forward обеих веток. План публикации — atomic push в `main` и существующую рабочую ветку, без force push, принудительного merge, переписывания истории и удаления remote branches. Настройка default branch остаётся `main`.
+Исходный `origin/main` после fetch: `92217d7a5c96a65e6f925bb8195318f99fe5b145`. Проверка ancestry и dry-run подтвердили возможность обычного fast-forward обеих веток. Выполнен успешный atomic push в `main` и `refactor/api-first-postgresql`, без force push, принудительного merge, переписывания истории и удаления remote branches. Default branch остаётся `main`.
 
 Коммиты реализации:
 
@@ -82,6 +82,7 @@ Worker согласован с SyncMarketplace: timeout 1800 s, Redis retry_afte
 | `9ff836a3fe9ea428e6d76905f574e5a570c491ef` | Единый Vue-интерфейс, instant demo, fonts/licenses, галерея, tours и browser tooling |
 | `3f6d5046959f371e5d15bee8c5921ce5ae1e5d0e` | Наличие Laravel view path в clean checkout для production cache warmup |
 | `f8b05faac8563d6662bcec9063b89098c69be4fe` | Стабильная загрузка demo CTA, мобильная смена организации, расширенные browser checks |
+| `489f2f4d38bfdf86c4cd18f5cdb9434c145a681e` | Релизный пакет: deployment, README JAROVIT, 232 PNG, отчёты и финальная съёмка |
 
 Аудит перед публикацией: поиск известных секретных значений из локальных env без их вывода, сигнатур private keys/GitHub/AWS/Shopify tokens в кандидатах и всех доступных history blobs. На предварительной проверке: 538 файлов и 513 history blobs, совпадений нет. Это проверка заданных сигнатур/известных значений, а не математическое доказательство отсутствия любого возможного секрета. Дополнительно проверяются staged paths, отсутствие вложенных репозиториев и diff --check.
 
@@ -91,6 +92,10 @@ Worker согласован с SyncMarketplace: timeout 1800 s, Redis retry_afte
 
 Обнаруженный параллельный пользовательский `scripts/test.php` исключён из релизных коммитов; его staged и рабочая версии сохранены. Коммиты выполняются с явным списком путей.
 
+Релизный commit `489f2f4d38bfdf86c4cd18f5cdb9434c145a681e` дополнительно собран в отдельном checkout с production dependencies: build завершился с exit 0. Повторный аудит после коммита: 608 файлов, 856 history blobs, совпадений нет; gitlinks отсутствуют, `scripts/test.php` отсутствует в дереве релиза.
+
+Фактическая проверка `git ls-remote --symref origin HEAD refs/heads/main refs/heads/refactor/api-first-postgresql` после push вернула один SHA `489f2f4d38bfdf86c4cd18f5cdb9434c145a681e` для HEAD и обеих веток; symbolic HEAD — `refs/heads/main`. Этот отчёт дополнен отдельным последующим коммитом документации; его SHA определяется через `git log -1 -- docs/architecture/markethub-final-release.md`, чтобы не создавать самоссылку на собственный hash.
+
 ## Итог
 
-Внешние действия: приобрести/подготовить VPS, выбрать домен, настроить DNS, секреты, PostgreSQL/Redis, HTTPS и выполнить фактический deployment по runbook. Публичный URL до этого не заявляется. Новых архитектурных этапов для портфолио-ядра не требуется; решение о завершении релиза подтверждается итоговыми тестами и GitHub verification ниже.
+MarketHub готов как портфолио-проект; кодовая база подготовлена к будущему хостингу. Разработку по TASK16 можно завершить: проверки прошли, релиз опубликован и синхронизация с GitHub подтверждена. Внешние действия: приобрести/подготовить VPS, выбрать домен, настроить DNS, секреты, PostgreSQL/Redis, HTTPS и выполнить фактический deployment по runbook. Публичный URL до этого не заявляется. Дополнительных архитектурных этапов для портфолио-ядра не требуется.
