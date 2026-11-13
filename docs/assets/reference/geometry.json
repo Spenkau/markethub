@@ -1,0 +1,31 @@
+[
+  {
+    "width": 1440,
+    "font": "Inter, \"sans-serif\"",
+    "header": 64,
+    "sidebar": 240
+  },
+  {
+    "width": 1280,
+    "font": "Inter, \"sans-serif\"",
+    "header": 64,
+    "sidebar": 240
+  },
+  {
+    "width": 1024,
+    "font": "Inter, \"sans-serif\"",
+    "header": 64,
+    "sidebar": 240
+  },
+  {
+    "width": 768,
+    "font": "Inter, \"sans-serif\"",
+    "header": 64,
+    "sidebar": 240
+  },
+  {
+    "width": 390,
+    "font": "Inter, \"sans-serif\"",
+    "header": 64
+  }
+]

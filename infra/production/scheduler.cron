@@ -1,0 +1,2 @@
+# Install in /etc/cron.d/markethub (root:root, mode 0644).
+* * * * * markethub cd /srv/markethub/current && /usr/bin/php artisan schedule:run >> /srv/markethub/shared/storage/logs/scheduler.log 2>&1

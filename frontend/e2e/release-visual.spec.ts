@@ -36,6 +36,8 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/app');
     await expect(page.locator('.dashboard-connection')).toHaveCount(3);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByLabel('Активная организация')).toBeVisible();
     await page.screenshot({ path: 'public/demo-assets/workspace-preview.png' });
     const routes = {
         dashboard: '/app',
@@ -153,6 +155,56 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
     expect(errors).toEqual([]);
 });
 
+test('portfolio preview and landing assets contain the fully loaded workspace', async ({
+    page,
+}) => {
+    database(true);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();
+    await expect(page.getByTestId('demo-banner')).toBeVisible();
+    await page.evaluate(() =>
+        sessionStorage.setItem(
+            'markethub-demo-tours',
+            JSON.stringify({
+                preferences: { auto_start: false, checklist_collapsed: true },
+                progress: [],
+            }),
+        ),
+    );
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByLabel('Активная организация')).toBeVisible();
+    await expect(page.locator('.dashboard-connection')).toHaveCount(3);
+    await expect(page.locator('.loading-state')).toHaveCount(0);
+    const preview = await page.screenshot();
+    await page.context().clearCookies();
+    await page.goto('/');
+    await page.waitForLoadState('networkidle');
+    writeFileSync('public/demo-assets/workspace-preview.png', preview);
+    mkdirSync('../docs/assets/screenshots', { recursive: true });
+    writeFileSync('../docs/assets/screenshots/dashboard.png', preview);
+    for (const [width, height] of viewports) {
+        await page.setViewportSize({ width: width!, height: height! });
+        await page.goto('/');
+        await page.waitForLoadState('networkidle');
+        await expect(
+            page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }),
+        ).toBeEnabled();
+        expect(
+            await page
+                .locator('.landing-preview img')
+                .evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0),
+        ).toBe(true);
+        await page.screenshot({
+            path: `../docs/assets/visual/${width}/landing.png`,
+            fullPage: true,
+        });
+        if (width === 1440)
+            await page.screenshot({ path: '../docs/assets/screenshots/landing.png' });
+    }
+});
+
 test('writable forms, dialogs and keyboard focus on synthetic data', async ({ page }) => {
     database(true, true);
     const errors: string[] = [];
@@ -185,26 +237,29 @@ test('writable forms, dialogs and keyboard focus on synthetic data', async ({ pa
                 await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
                 `${width}: ${name}`,
             ).toBe(true);
-            await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true });
+            await page.screenshot({
+                path: `${dir}/${name}.png`,
+                fullPage: !name.endsWith('-form'),
+            });
         }
         await page.goto('/app/stocks');
         await page.getByRole('button', { name: 'Поступление', exact: true }).click();
         const dialog = page.getByRole('dialog');
         await expect(dialog).toBeVisible();
         await expect(dialog.locator('input,select,button').first()).toBeFocused();
-        await page.screenshot({ path: `${dir}/stock-operation.png`, fullPage: true });
+        await page.screenshot({ path: `${dir}/stock-operation.png` });
         await page.keyboard.press('Escape');
         await expect(dialog).not.toBeVisible();
         await expect(page.getByRole('button', { name: 'Поступление', exact: true })).toBeFocused();
         await page.goto('/app/purchases/1');
         await page.getByRole('button', { name: 'Создать приёмку', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
-        await page.screenshot({ path: `${dir}/receipt-form.png`, fullPage: true });
+        await page.screenshot({ path: `${dir}/receipt-form.png` });
         await page.goto('/app/products/1');
         await page.getByRole('button', { name: 'Сопоставить с MarketHub', exact: true }).click();
         await expect(page.getByRole('dialog')).toBeVisible();
         await page.waitForLoadState('networkidle');
-        await page.screenshot({ path: `${dir}/mapping.png`, fullPage: true });
+        await page.screenshot({ path: `${dir}/mapping.png` });
         await page.goto('/app/products');
         const remove = page.getByRole('button', { name: 'Удалить товар', exact: true }).first();
         await remove.click();
@@ -217,7 +272,7 @@ test('writable forms, dialogs and keyboard focus on synthetic data', async ({ pa
         ).toBeFocused();
         await page.keyboard.press('Tab');
         await expect(cancel).toBeFocused();
-        await page.screenshot({ path: `${dir}/confirmation.png`, fullPage: true });
+        await page.screenshot({ path: `${dir}/confirmation.png` });
         await page.keyboard.press('Escape');
         await expect(confirmation).not.toBeVisible();
         await expect(remove).toBeFocused();

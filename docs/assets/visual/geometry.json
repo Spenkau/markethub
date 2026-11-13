@@ -1,0 +1,38 @@
+[
+  {
+    "width": 1440,
+    "header": 64,
+    "sidebar": 256,
+    "font": "Inter, \"Segoe UI\", Arial, sans-serif"
+  },
+  {
+    "width": 1280,
+    "header": 64,
+    "sidebar": 256,
+    "font": "Inter, \"Segoe UI\", Arial, sans-serif"
+  },
+  {
+    "width": 1024,
+    "header": 64,
+    "sidebar": 256,
+    "font": "Inter, \"Segoe UI\", Arial, sans-serif"
+  },
+  {
+    "width": 768,
+    "header": 64,
+    "sidebar": 256,
+    "font": "Inter, \"Segoe UI\", Arial, sans-serif"
+  },
+  {
+    "width": 390,
+    "header": 64,
+    "sidebar": 288,
+    "font": "Inter, \"Segoe UI\", Arial, sans-serif"
+  },
+  {
+    "width": 375,
+    "header": 64,
+    "sidebar": 288,
+    "font": "Inter, \"Segoe UI\", Arial, sans-serif"
+  }
+]

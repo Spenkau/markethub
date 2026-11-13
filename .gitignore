@@ -1,6 +1,9 @@
 *.log
 .DS_Store
 .env
+.TASKS
+/TASKS/
+/tg-bots/
 .env.backup
 .env.production
 .phpactor.json

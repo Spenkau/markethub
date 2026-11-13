@@ -1,0 +1,18 @@
+[Unit]
+Description=MarketHub queue worker
+After=network.target
+
+[Service]
+Type=simple
+User=markethub
+Group=markethub
+WorkingDirectory=/srv/markethub/current
+ExecStart=/usr/bin/php artisan queue:work redis --sleep=3 --tries=3 --timeout=1800 --max-time=3600
+Restart=always
+RestartSec=5
+KillSignal=SIGTERM
+TimeoutStopSec=1900
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
