@@ -22,7 +22,7 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
         if (e.type() === 'error') errors.push(`${e.text()} ${e.location().url}`);
     });
     await page.goto('/');
-    await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();
+    await page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' }).click();
     await expect(page.getByTestId('demo-banner')).toBeVisible();
     await page.evaluate(() =>
         sessionStorage.setItem(
@@ -148,7 +148,7 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
         await page.waitForLoadState('networkidle');
         await page.screenshot({ path: `${dir}/landing.png`, fullPage: true });
         if (width === 1440) await page.screenshot({ path: `${screenshots}/landing.png` });
-        await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();
+        await page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' }).click();
         await expect(page.getByTestId('demo-banner')).toBeVisible();
     }
     writeFileSync('../docs/assets/visual/geometry.json', JSON.stringify(geometry, null, 2));
@@ -161,7 +161,7 @@ test('portfolio preview and landing assets contain the fully loaded workspace', 
     database(true);
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/');
-    await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();
+    await page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' }).click();
     await expect(page.getByTestId('demo-banner')).toBeVisible();
     await page.evaluate(() =>
         sessionStorage.setItem(
@@ -189,7 +189,7 @@ test('portfolio preview and landing assets contain the fully loaded workspace', 
         await page.goto('/');
         await page.waitForLoadState('networkidle');
         await expect(
-            page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }),
+            page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' }),
         ).toBeEnabled();
         expect(
             await page

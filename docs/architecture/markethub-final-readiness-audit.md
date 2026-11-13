@@ -2,7 +2,7 @@
 
 > Аудит фиксирует состояние TASK14 до завершающих изменений. Актуальное состояние — в [финальном релизе](markethub-final-release.md).
 
-Дата: 13 ноября 2026. Задание: `D:/Projects/TASK14.md`. Разработчик проекта: **JAROVIT**.
+Дата: 13 ноября 2026. Задание: `D:/Projects/TASK14.md`. Разработчик проекта: **MarketHub**.
 
 ## 1. Executive summary
 
@@ -109,7 +109,7 @@ Backend проверил local CRUD, SKU uniqueness, search/sort/page limits, з
 | P1-01 — публичный demo не ограничен | Обычный member получает create/update/delete в `OrganizationBusinessPolicy`; org create разрешён. ApiTest выполняет CRUD обычным пользователем. Нет viewer/demo middleware или outbound demo boundary | Не выдавать гостям рабочий tenant. Отдельная synthetic БД, demo-пользователь и server-side запрет изменения integrations/credentials, real probe/sync и org creation. Самый короткий вариант — read-only demo; интерактивное demo требует disposable/reset данных | Средняя | Без публичного аккаунта — да; с публичным — нет |
 | P1-02 — bootstrap production отсутствует | `DemoDataSeeder` отказывает вне local/testing, `markethub:admin` разрешён только local. Свежая production БД + штатные инструкции не дают demo-пользователя/данных | Нужен явный безопасный release bootstrap с синтетическими данными и вводом пароля вне Git, без переключения публичного приложения в local. Не ослаблять guard существующего сидера глобально | Небольшая/средняя | Для свежего публичного размещения — нет |
 | P1-03 — production hosting не подготовлен | `infra/nginx-spa.conf` содержит Windows absolute paths, loopback FastCGI:9000; `.env` local/debug=true. Runtime Redis корректен, но tracked worker/scheduler сейчас остановлены | Linux Nginx/PHP-FPM, production env/HTTPS/cookies, persistent worker и cron, permissions, backups APP_KEY+DB, smoke после развёртывания. Не копировать local config как production | Средняя | Для GitHub-only — да; для хостинга — нет |
-| P1-04 — нечестная/устаревшая презентация | `/` заявляет «Без реальных интеграций» и только WB/Ozon, хотя Shopify уже реализован; headline обещает продажи при отсутствии orders | Коротко описать каталог/остатки/закупки, Shopify read-only и WB/Ozon demo; убрать обещание аналитики/будущего бесконечного roadmap. Добавить авторство JAROVIT | Небольшая | Для убедительной публичной демонстрации — нет |
+| P1-04 — нечестная/устаревшая презентация | `/` заявляет «Без реальных интеграций» и только WB/Ozon, хотя Shopify уже реализован; headline обещает продажи при отсутствии orders | Коротко описать каталог/остатки/закупки, Shopify read-only и WB/Ozon demo; убрать обещание аналитики/будущего бесконечного roadmap. Добавить авторство MarketHub | Небольшая | Для убедительной публичной демонстрации — нет |
 | P1-05 — проверенная версия не воспроизводится из HEAD | Dashboard controller/query/API/tests/config ещё untracked, а routes/page уже modified; `git status` не чистый | После согласованного завершения включить связанные файлы в один осмысленный commit, проверить fresh checkout. Исключить посторонний tg-bots. В этом аудите commit/push запрещены и не выполнялись | Небольшая | До публикации итогового состояния — нет |
 | P1-06 — неучтённый physical stock выдан за ноль в каталоге | Создать local SKU без stock operation; `/catalog` через `UnifiedCatalogPresenter::list` возвращает physical_quantity=0 из `?? 0`, Vue пишет `MarketHub: 0 шт.`. Dashboard правильно считает no_data_skus | В каталоге различать «нет учётных записей» и подтверждённый 0: nullable quantity + has_physical_records/count. Согласовать с dashboard, не изменять реальные остатки | Небольшая | Для корректной демонстрации склада желательно исправить до финиша |
 
@@ -210,11 +210,11 @@ N+1 в проверенных основных списках не воспро�
 
 ## 14. GitHub / README readiness и секреты
 
-README уже содержит архитектуру API, PostgreSQL isolation, локальную установку, cookie auth, modules и ссылки на TASK8–TASK11. Есть API/OpenAPI и подробные тематические документы. Но текущий README ориентирован на историю Windows-разработки и не завершён как витрина JAROVIT.
+README уже содержит архитектуру API, PostgreSQL isolation, локальную установку, cookie auth, modules и ссылки на TASK8–TASK11. Есть API/OpenAPI и подробные тематические документы. Но текущий README ориентирован на историю Windows-разработки и не завершён как витрина MarketHub.
 
 До финиша нужны:
 
-1. Короткое описание продукта и возможностей с границей Shopify real / WB/Ozon demo / отсутствием customer orders; имя JAROVIT.
+1. Короткое описание продукта и возможностей с границей Shopify real / WB/Ozon demo / отсутствием customer orders; имя MarketHub.
 2. 4–6 аккуратных screenshot: обзор, каталог+галерея, подключение/history, external stocks, purchase/receipt, mobile. Не публиковать рабочие домены магазина, пользовательские данные или credentials. Существующие test-results не являются готовыми curated screenshots.
 3. Один актуальный quickstart: requirements → env → migrate → безопасные synthetic data/user → build → web/worker/scheduler → test. Отдельно Windows и Linux.
 4. Production runbook без локальных абсолютных путей, ограничения demo/real capabilities, safe bootstrap, известные ограничения. Публичную ссылку добавить только после реального размещения.
@@ -261,6 +261,6 @@ Windows runner задержался при webServer teardown после вып�
 |---|---|---|---|
 | **1. Честное безопасное demo + короткая доводка** | Отдельное synthetic окружение, demo boundary/read-only, production-safe fixtures/user bootstrap; исправить no-data→0, broken image/галерею, landing и scope экспорта. Один сценарий демонстрации имеющихся функций | P1, средняя; UX P2 небольшая | Для публичного demo — нет; новое orders/API WB/Ozon не требуется |
 | **2. Подготовка и проверка размещения** | Linux Nginx/PHP-FPM/env/HTTPS, PostgreSQL/Redis, supervised worker, cron, permissions/backup+APP_KEY, deploy/rollback runbook и изолированный smoke. Сам деплой — отдельное разрешённое действие после подготовки | P1, средняя | Для GitHub-only можно; для размещения — нет |
-| **3. Упаковка портфолио и финальная регрессия** | README JAROVIT, curated screenshots, точный API/limitations, переносимые тестовые команды, выборочный commit всех связанных файлов и fresh-checkout checks; после согласования публикация версии/ссылки | P1/P2, небольшая/средняя | Для профессионального GitHub — нет |
+| **3. Упаковка портфолио и финальная регрессия** | README MarketHub, curated screenshots, точный API/limitations, переносимые тестовые команды, выборочный commit всех связанных файлов и fresh-checkout checks; после согласования публикация версии/ссылки | P1/P2, небольшая/средняя | Для профессионального GitHub — нет |
 
 **Вердикт: три небольших завершающих этапа, без нового цикла бизнес-разработки.** Заказы — вариант A; dashboard сохранить; реальные WB/Ozon, OMS/финансы/billing, bulk pipeline и архитектурную переделку не добавлять. При ограничении результата только GitHub без публичного demo инфраструктурные действия можно отложить, но ограничения следует явно описать.

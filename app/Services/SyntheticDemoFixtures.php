@@ -23,15 +23,15 @@ class SyntheticDemoFixtures
     public function create(string $email, string $password): void
     {
         $previous = Auth::user();
-        $user = User::create(['name' => 'Посетитель JAROVIT demo', 'email' => $email, 'password' => $password]);
-        $org = Organization::create(['name' => 'JAROVIT · синтетическая демокомпания', 'slug' => PublicDemo::ORGANIZATION]);
+        $user = User::create(['name' => 'Demo', 'email' => $email, 'password' => $password]);
+        $org = Organization::create(['name' => 'Demo', 'slug' => PublicDemo::ORGANIZATION]);
         $user->organizations()->attach($org);
         $user->forceFill(['active_organization_id' => $org->id])->save();
         Auth::setUser($user);
         try {
             $products = [];
             foreach (['Настольная лампа', 'Наушники', 'Термобутылка', 'Органайзер', 'Рюкзак'] as $i => $name) {
-                $products[] = Product::create(['sku' => 'SYNTHETIC-'.($i + 1), 'name' => $name.' · demo', 'description' => 'Синтетический пример JAROVIT. Не является предложением о продаже.', 'base_price_minor' => 3500 + $i * 1700, 'currency' => 'BYN', 'is_active' => true]);
+                $products[] = Product::create(['sku' => 'SYNTHETIC-'.($i + 1), 'name' => $name.' · demo', 'description' => 'Синтетический пример MarketHub. Не является предложением о продаже.', 'base_price_minor' => 3500 + $i * 1700, 'currency' => 'BYN', 'is_active' => true]);
             }
             $warehouse = Warehouse::create(['name' => 'Demo · основной склад', 'code' => 'DEMO-MAIN', 'type' => 'own', 'is_active' => true]);
             $reserve = Warehouse::create(['name' => 'Demo · резерв', 'code' => 'DEMO-RESERVE', 'type' => 'own', 'is_active' => true]);

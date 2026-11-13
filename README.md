@@ -1,6 +1,6 @@
 # MarketHub
 
-**Единый каталог и складской кабинет — портфолио-проект [JAROVIT](https://jarovit.org/).**
+**Единый каталог и складской кабинет.**
 
 MarketHub объединяет локальные SKU и внешние карточки товаров, показывает происхождение остатков и помогает вести закупки и приёмку. Vue 3 SPA работает с Laravel REST API; PostgreSQL хранит данные, Redis обслуживает очереди и кеш. Интерфейс адаптирован для desktop, планшета и телефона.
 
@@ -27,7 +27,7 @@ MarketHub объединяет локальные SKU и внешние карт
 
 ## Демонстрационный режим
 
-Landing содержит кнопку **«Войти в демонстрационный аккаунт»**. Если выделенная demo-база подготовлена, кнопка создаёт настоящую серверную сессию без ввода пароля через CSRF-защищённый POST. При отсутствии demo-конфигурации страница честно сообщает о недоступности.
+Landing содержит кнопку **«Перейти в демо версию»**. Если выделенная demo-база подготовлена, кнопка создаёт настоящую серверную сессию без ввода пароля через CSRF-защищённый POST. При отсутствии demo-конфигурации страница честно сообщает о недоступности.
 
 Demo доступно только для явно разрешённой отдельной PostgreSQL базы с именем `_demo`, одного demo-пользователя и одной синтетической организации. Бизнес-запись запрещена middleware и Policies; прямой POST/PATCH/DELETE с валидным CSRF возвращает 403. Доступны просмотр, поиск, фильтры, экспорт, галерея и обучение; прогресс demo-экскурсий хранится в sessionStorage. Внешних запросов и реальных credentials в fixtures нет. Обычный закрытый вход остаётся на `/login`, публичных ссылок на него нет.
 
@@ -124,4 +124,4 @@ npm run test:e2e -- --config=playwright.visual.config.ts
 
 [API](docs/API.md) · [OpenAPI](docs/openapi.json) · [XLSX](docs/EXCEL.md) · [Frontend](frontend/README.md) · [Отчёт релиза](docs/architecture/markethub-final-release.md)
 
-Разработка и адаптация интерфейса: **[JAROVIT](https://jarovit.org/)**. Дизайн-референс — [shadcn-admin](https://github.com/satnaing/shadcn-admin), Sat Naing, MIT ([уведомление](docs/licenses/shadcn-admin-MIT.txt)). Локальный Inter поддерживает кириллицу и распространяется по [SIL OFL](docs/licenses/Inter-OFL.txt). Иконки Lucide. Vue-реализация сохраняет собственную бизнес-модель MarketHub.
+Дизайн-референс — [shadcn-admin](https://github.com/satnaing/shadcn-admin), Sat Naing, MIT ([уведомление](docs/licenses/shadcn-admin-MIT.txt)). Локальный Inter поддерживает кириллицу и распространяется по [SIL OFL](docs/licenses/Inter-OFL.txt). Иконки Lucide. Vue-реализация сохраняет собственную бизнес-модель MarketHub.

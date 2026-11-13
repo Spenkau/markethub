@@ -48,7 +48,7 @@ SPA и API работают на одном HTTPS origin: Nginx отправля
 ## Проверка
 
 - `curl -f https://<домен>/up`, `/` и deep link `/app/products` возвращают приложение, не 502/404.
-- Landing показывает реальную картинку и кнопку «Войти в демонстрационный аккаунт». Вход работает без пароля, создаёт серверную сессию с CSRF; после logout возвращает на `/login`.
+- Landing показывает реальную картинку и кнопку «Перейти в демо версию». Вход работает без пароля, создаёт серверную сессию с CSRF; после logout возвращает на `/login`.
 - Demo: каталог/карточки/галерея, dashboard, история, физические и внешние остатки, закупки, фильтры, XLSX и обучение доступны. POST/PATCH/DELETE бизнес-данных возвращают 403 даже при прямом запросе с валидным CSRF.
 - HTTPS cookies Secure/HttpOnly, APP_DEBUG=false; проверить отсутствие stack traces. Проверить таймауты, ограничения входа, tenant isolation и session logout.
 - `systemctl status markethub-worker`, `php artisan queue:failed`, `php artisan schedule:list`; проверить scheduler log. Настроить мониторинг /up, диска, очередей и резервных копий.

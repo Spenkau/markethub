@@ -9,7 +9,7 @@ use RuntimeException;
 
 class PublicDemo
 {
-    public const ORGANIZATION = 'jarovit-public-demo';
+    public const ORGANIZATION = 'markethub-public-demo';
 
     public function assertDedicatedDatabase(): void
     {

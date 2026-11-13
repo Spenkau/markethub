@@ -7,7 +7,7 @@ test('Demo CTA keeps its size while loading and reports a failed login', async (
     for (const width of [1280, 375]) {
         await page.setViewportSize({ width, height: 844 });
         await page.goto('/');
-        const button = page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' });
+        const button = page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' });
         await expect(button).toBeVisible();
         await page.evaluate(async () => {
             await document.fonts.ready;
@@ -25,7 +25,9 @@ test('Demo CTA keeps its size while loading and reports a failed login', async (
             });
         });
         await button.click();
-        const loading = page.getByRole('button', { name: 'Открываем демоверсию…' });
+        const loading = page
+            .locator('.hero')
+            .getByRole('button', { name: 'Открываем демоверсию…' });
         await expect(loading).toBeDisabled();
         await expect(loading).toHaveAttribute('aria-busy', 'true');
         expect(await loading.boundingBox()).toEqual(before);
@@ -41,7 +43,7 @@ test('Demo CTA keeps its size while loading and reports a failed login', async (
 });
 async function enter(page: Page) {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();
+    await page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' }).click();
     await expect(page.getByTestId('demo-banner')).toBeVisible();
     // Demo tours use per-tab state, never a shared user's database preferences.
     await page.evaluate(() =>
@@ -61,9 +63,9 @@ test('Demo login, readonly API, safe routes, dashboard and mobile', async ({ pag
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
     await expect(
-        page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }),
+        page.locator('.hero').getByRole('button', { name: 'Перейти в демо версию' }),
     ).toBeVisible();
-    await expect(page.locator('body')).toContainText('JAROVIT');
+    await expect(page.locator('body')).toContainText('MarketHub');
     await expect(page.locator('body')).toContainText(
         'Покупательские заказы и финансы не реализованы',
     );

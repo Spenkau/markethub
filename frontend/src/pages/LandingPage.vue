@@ -66,9 +66,13 @@ const features = [
                 ><span class="brand-symbol">M</span>MarketHub<span class="brand-dot"
                     >.</span
                 ></RouterLink
-            ><a href="https://jarovit.org/" class="secondary" target="_blank" rel="noreferrer"
-                >Проект JAROVIT <ArrowUpRight :size="16"
-            /></a>
+            ><button
+                class="secondary"
+                :disabled="busy || checking || !available"
+                @click="enterDemo"
+            >
+                Перейти в демо версию <ArrowUpRight :size="16" />
+            </button>
         </header>
         <main>
             <section class="hero">
@@ -77,8 +81,8 @@ const features = [
                 </div>
                 <h1>Каталог, склады и площадки <span>в одном пространстве</span></h1>
                 <p>
-                    MarketHub — портфолио-проект разработчика JAROVIT. Единый каталог, сопоставление
-                    вариантов и складской учёт в адаптивном рабочем кабинете.
+                    MarketHub — единый каталог, сопоставление вариантов и складской учёт в
+                    адаптивном рабочем кабинете.
                 </p>
                 <button
                     v-if="available"
@@ -87,7 +91,7 @@ const features = [
                     :aria-busy="busy"
                     @click="enterDemo"
                 >
-                    {{ busy ? 'Открываем демоверсию…' : 'Войти в демонстрационный аккаунт' }}
+                    {{ busy ? 'Открываем демоверсию…' : 'Перейти в демо версию' }}
                     <ArrowRight :size="18" />
                 </button>
                 <p v-else class="hero-note" role="status">
@@ -111,7 +115,7 @@ const features = [
                     loading="lazy"
                 />
                 <figcaption class="sr-only">
-                    Демонстрационные данные JAROVIT. Функции продаж и финансов не заявляются.
+                    Демонстрационные данные MarketHub. Функции продаж и финансов не заявляются.
                 </figcaption>
             </figure>
             <section id="features" class="features">
@@ -137,6 +141,6 @@ const features = [
                 /></a>
             </section>
         </main>
-        <footer>MarketHub · JAROVIT <span>Портфолио разработчика</span></footer>
+        <footer>MarketHub <span>Каталог и складской учёт</span></footer>
     </div>
 </template>

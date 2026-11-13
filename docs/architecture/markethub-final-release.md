@@ -1,6 +1,12 @@
-# MarketHub — финальный релиз JAROVIT
+# MarketHub — финальный релиз MarketHub
 
 Дата проверки: 13 ноября 2026. Задание: TASK16. Проект: [Spenkau/markethub](https://github.com/Spenkau/markethub).
+
+Уточнение после релиза: убрана сторонняя брендовая атрибуция из интерфейса, demo fixtures, изображений и документации. Обе кнопки «Перейти в демо версию» открывают панель через прежний защищённый вход без пароля. Demo-пользователь и компания называются `Demo`; slug — `markethub-public-demo`.
+
+Обновлённая полная визуальная матрица и формы: **3 passed, 7.0 min, exit 0**. Все скриншоты приложения и сравнительные листы перегенерированы после переименования.
+
+Для локального сайта подготовлена отдельная `markethub_public_demo`; прежний `.env` сохранён в игнорируемом `storage/app/local-env-before-demo-*.backup`. Рабочие бизнес-данные не переносились и не очищались. При подготовке к рабочей схеме применена ранее ожидавшая миграция `add_demo_access_to_users`; дальнейшие миграции и fixtures выполнялись в отдельной demo-базе. Проверен реальный вход через `http://markethub.test/`: `/api/v1/auth/me` возвращает `Demo`, `is_admin=false`, `is_demo_access=true`. Проверки изменений: 7 backend-тестов (96 assertions), 4 demo E2E, 10 frontend-тестов, lint/typecheck/build — успешно.
 
 ## Visual design
 
@@ -36,7 +42,7 @@ Sidebar содержит только реальные разделы: обзо�
 
 ## Demo
 
-На landing нет публичных ссылок обычного входа. CTA: **«Войти в демонстрационный аккаунт»**. GET `/api/v1/auth/demo` проверяет доступность; POST с обычным Sanctum CSRF выбирает подготовленного пользователя и регенерирует серверную сессию. В браузер не передаются demo-пароль и credentials. Есть loading/error/unavailable состояния; кнопка блокирует повторное нажатие.
+На landing нет публичных ссылок обычного входа. CTA: **«Перейти в демо версию»**. GET `/api/v1/auth/demo` проверяет доступность; POST с обычным Sanctum CSRF выбирает подготовленного пользователя и регенерирует серверную сессию. В браузер не передаются demo-пароль и credentials. Есть loading/error/unavailable состояния; кнопка блокирует повторное нажатие.
 
 Подготовка: новая пустая PostgreSQL `_demo` база, отдельные роль/env/APP_KEY; миграции, затем `markethub:demo-bootstrap` с точным подтверждением production и имени базы. Полный порядок — [DEPLOYMENT](../DEPLOYMENT.md). Команда не очищает и не мигрирует базу; повторный bootstrap отказывается менять существующие данные. В `_test` разрешена только в testing.
 
@@ -82,7 +88,7 @@ Worker согласован с SyncMarketplace: timeout 1800 s, Redis retry_afte
 | `9ff836a3fe9ea428e6d76905f574e5a570c491ef` | Единый Vue-интерфейс, instant demo, fonts/licenses, галерея, tours и browser tooling |
 | `3f6d5046959f371e5d15bee8c5921ce5ae1e5d0e` | Наличие Laravel view path в clean checkout для production cache warmup |
 | `f8b05faac8563d6662bcec9063b89098c69be4fe` | Стабильная загрузка demo CTA, мобильная смена организации, расширенные browser checks |
-| `489f2f4d38bfdf86c4cd18f5cdb9434c145a681e` | Релизный пакет: deployment, README JAROVIT, 232 PNG, отчёты и финальная съёмка |
+| `489f2f4d38bfdf86c4cd18f5cdb9434c145a681e` | Релизный пакет: deployment, README MarketHub, 232 PNG, отчёты и финальная съёмка |
 
 Аудит перед публикацией: поиск известных секретных значений из локальных env без их вывода, сигнатур private keys/GitHub/AWS/Shopify tokens в кандидатах и всех доступных history blobs. На предварительной проверке: 538 файлов и 513 history blobs, совпадений нет. Это проверка заданных сигнатур/известных значений, а не математическое доказательство отсутствия любого возможного секрета. Дополнительно проверяются staged paths, отсутствие вложенных репозиториев и diff --check.
 
