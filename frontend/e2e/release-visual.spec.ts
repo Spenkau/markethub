@@ -60,6 +60,8 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
         help: '/app/help',
     };
     const geometry: unknown[] = [];
+    const screenshots = '../docs/assets/screenshots';
+    mkdirSync(screenshots, { recursive: true });
     for (const [width, height] of viewports) {
         await page.setViewportSize({ width: width!, height: height! });
         const dir = `../docs/assets/visual/${width}`;
@@ -84,6 +86,15 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
                     ),
             );
             await page.screenshot({ path: `${dir}/${name}.png`, fullPage: true });
+            if (
+                width === 1440 &&
+                ['dashboard', 'catalog', 'product', 'marketplaces', 'stocks', 'purchases'].includes(
+                    name,
+                )
+            )
+                await page.screenshot({ path: `${screenshots}/${name}.png` });
+            if (width === 390 && name === 'marketplaces')
+                await page.screenshot({ path: `${screenshots}/mobile.png` });
             expect(
                 await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
                 `${width}: ${name} overflow ${overflow.join('; ')}`,
@@ -134,6 +145,7 @@ test('release screenshot matrix with synthetic data', async ({ page }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
         await page.screenshot({ path: `${dir}/landing.png`, fullPage: true });
+        if (width === 1440) await page.screenshot({ path: `${screenshots}/landing.png` });
         await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();
         await expect(page.getByTestId('demo-banner')).toBeVisible();
     }

@@ -2,6 +2,43 @@ import { test, expect, type Page } from '@playwright/test';
 import { database } from './support/demo-fixture';
 test.beforeAll(() => database(true));
 test.afterAll(() => database(false));
+
+test('Demo CTA keeps its size while loading and reports a failed login', async ({ page }) => {
+    for (const width of [1280, 375]) {
+        await page.setViewportSize({ width, height: 844 });
+        await page.goto('/');
+        const button = page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' });
+        await expect(button).toBeVisible();
+        await page.evaluate(async () => {
+            await document.fonts.ready;
+        });
+        const before = await button.boundingBox();
+        let release: (() => void) | undefined;
+        await page.route('**/api/v1/auth/demo', async (route) => {
+            if (route.request().method() !== 'POST') return route.continue();
+            await new Promise<void>((resolve) => {
+                release = resolve;
+            });
+            await route.fulfill({
+                status: 503,
+                json: { message: 'Демоверсия временно недоступна.' },
+            });
+        });
+        await button.click();
+        const loading = page.getByRole('button', { name: 'Открываем демоверсию…' });
+        await expect(loading).toBeDisabled();
+        await expect(loading).toHaveAttribute('aria-busy', 'true');
+        expect(await loading.boundingBox()).toEqual(before);
+        await expect.poll(() => !!release).toBe(true);
+        release!();
+        await expect(page.getByRole('alert')).toContainText(
+            'Не удалось связаться с сервером. Попробуйте ещё раз.',
+        );
+        await expect(button).toBeEnabled();
+        await expect(page).toHaveURL(/\/$/);
+        await page.unroute('**/api/v1/auth/demo');
+    }
+});
 async function enter(page: Page) {
     await page.goto('/');
     await page.getByRole('button', { name: 'Войти в демонстрационный аккаунт' }).click();

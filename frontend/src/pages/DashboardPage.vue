@@ -213,7 +213,7 @@ onBeforeUnmount(() => {
             Не включено demo-подключений: {{ data.connections.excluded_demo }}. Для просмотра
             включите демонстрационные данные.
         </p>
-        <p v-if="actionError" class="error-banner" role="alert">{{ actionError }}</p>
+        <p v-if="actionError" class="alert" role="alert">{{ actionError }}</p>
         <p v-if="notice" class="info-banner" role="status">{{ notice }}</p>
         <PageState :loading="loading" :error="error" @retry="load()"
             ><template v-if="data">

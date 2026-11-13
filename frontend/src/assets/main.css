@@ -1021,6 +1021,7 @@ dd {
 }
 .hero .primary {
     min-height: 44px;
+    min-width: 360px;
     padding: 12px 24px;
 }
 .hero-note {
@@ -1234,6 +1235,8 @@ dd {
         font-size: 14px;
     }
     .hero .primary {
+        min-width: 0;
+        min-height: 64px;
         white-space: normal;
         width: 100%;
     }

@@ -133,7 +133,12 @@ test('Экскурсия, точечный запуск, mobile и смена о
     await page.getByLabel('Область обзора', { exact: true }).selectOption(accountOption!);
     await expect(page).toHaveURL(/marketplace_account_id=/);
     await expect(page.locator('.dashboard-kpis')).toBeVisible();
-    await page.getByLabel('Активная организация').selectOption({ label: 'Empty business' });
+    await page.getByRole('button', { name: 'Открыть меню', exact: true }).click();
+    await page.getByLabel('Организация в мобильном меню').selectOption({ label: 'Empty business' });
+    await page
+        .locator('.sidebar')
+        .getByRole('button', { name: 'Закрыть меню', exact: true })
+        .click();
     await expect(
         page.getByRole('heading', { name: 'Начните с первого полезного действия' }),
     ).toBeVisible();
