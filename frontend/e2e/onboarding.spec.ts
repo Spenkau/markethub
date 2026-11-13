@@ -11,9 +11,9 @@ require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->make(Il
 if (config('database.default') !== 'pgsql' || !str_ends_with(config('database.connections.pgsql.database'), '_test')) throw new RuntimeException('Isolated PostgreSQL test database required');
 Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--force'=>true]);
 if (getenv('ONBOARDING_SETUP') === '1') $created = App\Models\User::factory()->create(['name'=>'Onboarding Check','email'=>getenv('ONBOARDING_EMAIL'),'password'=>getenv('ONBOARDING_PASSWORD'),'tour_auto_start'=>getenv('ONBOARDING_AUTO')==='1']);
-if (isset($created) && getenv('ONBOARDING_SKIP_WELCOME') === '1') App\Models\UserTourProgress::create(['user_id'=>$created->id,'tour_id'=>'welcome','version'=>1,'status'=>'skipped','step_id'=>'welcome','step_index'=>0]);
+if (isset($created) && getenv('ONBOARDING_SKIP_WELCOME') === '1') App\Models\UserTourProgress::create(['user_id'=>$created->id,'tour_id'=>'welcome','version'=>2,'status'=>'skipped','step_id'=>'welcome','step_index'=>0]);
 `;
-    const result = spawnSync('C:/tools/php83/php.exe', [], {
+    const result = spawnSync(process.env.PHP_BINARY || 'php', [], {
         cwd: root,
         input: code,
         encoding: 'utf8',
@@ -171,13 +171,15 @@ test('первое предложение, переходы экскурсии, 
     await login(page);
     await expect(page.locator('.tour-offer')).toBeVisible();
     await page.getByRole('button', { name: 'Начать экскурсию' }).click();
-    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 1 из 5');
+    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 1 из 7');
     await next(page);
     await expect(page.locator('.tour-highlight')).toBeVisible();
     await next(page);
     await next(page);
     await next(page);
-    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 5 из 5');
+    await next(page);
+    await next(page);
+    await expect(page.locator('.tour-tooltip')).toContainText('Шаг 7 из 7');
     await finish(page);
     await page.goto('/app/help');
     await page

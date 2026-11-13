@@ -6,8 +6,9 @@ const proxy: ProxyOptions = {
     changeOrigin: true,
     configure(server) {
         server.on('proxyReq', (req) => {
-            req.setHeader('Origin', 'http://markethub.test');
-            req.setHeader('Referer', 'http://markethub.test/');
+            const origin = process.env.MARKETHUB_FRONTEND_ORIGIN || 'http://markethub.test';
+            req.setHeader('Origin', origin);
+            req.setHeader('Referer', `${origin}/`);
         });
     },
 };

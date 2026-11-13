@@ -110,7 +110,7 @@ async function organizationSaved() {
                 <p>
                     {{
                         loading
-                            ? 'Проверяем реальные данные…'
+                            ? 'Проверяем данные организации…'
                             : `${data?.completed ?? 0} из ${data?.total ?? 6} этапов выполнено`
                     }}
                 </p>

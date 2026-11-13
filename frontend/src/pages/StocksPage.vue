@@ -251,7 +251,7 @@ function movementDate(value: string) {
                 @click="load"
             >
                 <RefreshCw :size="16" /></button
-            ><button class="primary" data-tour="create-warehouse" @click="edit()">
+            ><button class="primary" data-tour="create-warehouse" data-demo-write @click="edit()">
                 <Plus :size="17" />Новый склад
             </button>
         </div>
@@ -297,6 +297,7 @@ function movementDate(value: string) {
             v-for="action in actions"
             :key="action.type"
             class="secondary"
+            data-demo-write
             @click="operation = action.type"
         >
             <component :is="action.icon" :size="16" />{{ operationNames[action.type] }}</button
@@ -306,10 +307,12 @@ function movementDate(value: string) {
     </div>
     <div v-if="savedWarehouse" class="next-action-banner" role="status">
         <span>Склад «{{ savedWarehouse.name }}» сохранён.</span
-        ><RouterLink to="/app/products/new" class="text-link">Добавить товар →</RouterLink
+        ><RouterLink to="/app/products/new" class="text-link" data-demo-write
+            >Добавить товар →</RouterLink
         ><RouterLink
             :to="`/app/purchases?create=purchase&warehouse_id=${savedWarehouse.id}`"
             class="text-link"
+            data-demo-write
             >Создать закупку →</RouterLink
         >
     </div>
@@ -415,7 +418,12 @@ function movementDate(value: string) {
         <div id="inventory-content" role="tabpanel" :aria-labelledby="`tab-${tab}`">
             <PageState :loading="loading" :error="error" :empty="!meta?.total" @retry="load"
                 ><template #emptyActions
-                    ><button v-if="tab === 'warehouses'" class="secondary" @click="edit()">
+                    ><button
+                        v-if="tab === 'warehouses'"
+                        class="secondary"
+                        data-demo-write
+                        @click="edit()"
+                    >
                         Добавить первый склад</button
                     ><RouterLink v-else to="/app/products" class="text-link"
                         >Проверить каталог товаров →</RouterLink
@@ -480,6 +488,7 @@ function movementDate(value: string) {
                                         v-if="row.warehouse.is_active"
                                         :to="`/app/purchases?create=purchase&product_id=${row.product_id}&warehouse_id=${row.warehouse_id}`"
                                         class="table-subtitle text-link"
+                                        data-demo-write
                                         >Создать закупку →</RouterLink
                                     >
                                 </td>
@@ -510,7 +519,7 @@ function movementDate(value: string) {
                         <p v-if="warehouse.type === 'marketplace'" class="fine-print">
                             Учёт вручную · без API-интеграции
                         </p>
-                        <button class="secondary full" @click="edit(warehouse)">
+                        <button class="secondary full" data-demo-write @click="edit(warehouse)">
                             <Pencil :size="14" />Редактировать склад
                         </button>
                     </article>

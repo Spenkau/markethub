@@ -3,6 +3,7 @@ export interface User {
     name: string;
     email: string;
     is_admin: boolean;
+    is_demo_access?: boolean;
     active_organization_id: number | null;
 }
 export interface Organization {
@@ -40,7 +41,7 @@ export type ProductInput = Pick<
 export interface MarketplaceAccount {
     id: number;
     name: string;
-    marketplace: 'wildberries' | 'ozon' | 'shopify';
+    marketplace: 'wildberries' | 'ozon' | 'shopify' | 'shopify_demo';
     shopify?: import('../api/shopify').ShopifySummary | null;
     status: 'demo' | 'active' | 'disabled';
     is_demo: boolean;

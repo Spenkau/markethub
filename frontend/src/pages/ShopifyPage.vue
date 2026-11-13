@@ -805,7 +805,7 @@ onBeforeUnmount(() => {
 }
 .shopify-settings details {
     padding: 16px;
-    border: 1px solid #dce3ed;
+    border: 1px solid var(--border);
     border-radius: 10px;
 }
 .shopify-settings details label {

@@ -28,7 +28,11 @@ watch(
             <h1>Товары</h1>
             <p>Локальные SKU, внешние товары и размещения всех подключений.</p>
         </div>
-        <RouterLink to="/app/products/new" class="primary" data-tour="create-product"
+        <RouterLink
+            to="/app/products/new"
+            class="primary"
+            data-tour="create-product"
+            data-demo-write
             >Добавить товар</RouterLink
         >
     </div>
@@ -40,6 +44,7 @@ watch(
         ><RouterLink
             :to="`/app/purchases?create=purchase&product_id=${createdProduct.id}`"
             class="text-link"
+            data-demo-write
             >Создать закупку →</RouterLink
         >
     </div>

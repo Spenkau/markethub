@@ -282,7 +282,7 @@ onBeforeUnmount(() => {
     background: #f5f7fa;
 }
 .image-choice[aria-pressed='true'] {
-    border-color: #2563eb;
+    border-color: var(--primary);
 }
 .image-choice img {
     width: 76px;

@@ -13,8 +13,9 @@ export default defineConfig({
     },
     webServer: [
         {
-            command: 'php artisan serve --env=testing --host=127.0.0.1 --port=8001',
-            cwd: '..',
+            command:
+                `"${process.env.PHP_BINARY || 'php'}" -S 127.0.0.1:8001 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php`,
+            cwd: '../public',
             url: 'http://127.0.0.1:8001/up',
             reuseExistingServer: false,
             env: {
@@ -25,7 +26,7 @@ export default defineConfig({
             },
         },
         {
-            command: 'npm run dev -- --port 5174',
+            command: 'node node_modules/vite/bin/vite.js --port 5174 --strictPort',
             url: 'http://127.0.0.1:5174',
             reuseExistingServer: false,
             env: { MARKETHUB_API_TARGET: 'http://127.0.0.1:8001' },

@@ -3,6 +3,8 @@ import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { catalogApi, type CatalogEntry } from '../../api/catalog';
 import { productsApi } from '../../api/products';
+import { downloadExcel } from '../../api/exports';
+import { useAuth } from '../../stores/auth';
 import { connectionsApi, type Provider } from '../../api/connections';
 import { marketplacesApi } from '../../api/marketplaces';
 import type { Page, MarketplaceAccount } from '../../types';
@@ -12,6 +14,20 @@ import PageState from '../ui/PageState.vue';
 import PaginationBar from '../ui/PaginationBar.vue';
 import ProductGallery from './ProductGallery.vue';
 const providers = ref<Provider[]>([]);
+const auth = useAuth();
+const exporting = ref(false),
+    exportError = ref('');
+async function exportLocal() {
+    exporting.value = true;
+    exportError.value = '';
+    try {
+        await downloadExcel('products', {});
+    } catch (e) {
+        exportError.value = message(e);
+    } finally {
+        exporting.value = false;
+    }
+}
 const props = defineProps<{ accountId?: number; embedded?: boolean }>();
 const route = useRoute(),
     router = useRouter(),
@@ -63,6 +79,7 @@ function params() {
         marketplace_account_id: props.accountId || account.value || undefined,
         kind: kind.value || undefined,
         mapping: mapping.value || undefined,
+        origin: route.query.origin ? String(route.query.origin) : undefined,
         is_active: active.value || undefined,
         is_demo: mode.value || undefined,
         sort: sort.value,
@@ -171,6 +188,16 @@ onBeforeUnmount(() => {
                 <p>{{ result?.meta.total ?? '—' }} товаров · локальные SKU и внешние источники</p>
             </div>
             <button class="text-link" @click="reset">Сбросить фильтры</button>
+        </div>
+        <div class="catalog-export padded">
+            <button class="secondary" :disabled="exporting" @click="exportLocal">
+                Экспорт локальных SKU
+            </button>
+            <p class="fine-print">
+                Все локальные товары организации, без фильтров списка. Внешние варианты
+                Shopify/WB/Ozon не выгружаются.
+            </p>
+            <p v-if="exportError" class="alert" role="alert">{{ exportError }}</p>
         </div>
         <div class="toolbar" data-tour="catalog-filters">
             <input
@@ -281,7 +308,12 @@ onBeforeUnmount(() => {
                             </td>
                             <td>
                                 <p v-if="item.kind === 'local'">
-                                    MarketHub: {{ item.physical_quantity }} шт.
+                                    MarketHub:
+                                    {{
+                                        item.physical_quantity == null
+                                            ? 'Нет данных'
+                                            : `${item.physical_quantity} шт.`
+                                    }}
                                 </p>
                                 <p v-for="s in item.sources.slice(0, 2)" :key="s.id">
                                     {{ s.account.name }}:
@@ -318,7 +350,10 @@ onBeforeUnmount(() => {
                                 <RouterLink :to="detail(item)" class="text-link"
                                     >Открыть →</RouterLink
                                 >
-                                <div v-if="item.kind === 'local'" class="row-actions">
+                                <div
+                                    v-if="item.kind === 'local' && !auth.isDemo"
+                                    class="row-actions"
+                                >
                                     <RouterLink
                                         :to="`/app/products/${item.entity_id}/edit`"
                                         aria-label="Редактировать товар"

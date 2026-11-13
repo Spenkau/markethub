@@ -21,7 +21,7 @@ if (getenv('INVENTORY_E2E_SETUP') === '1') {
     App\Models\MarketplaceListing::factory()->create(['organization_id'=>$org->id,'product_id'=>$product->id,'marketplace_account_id'=>$account->id,'stock_quantity'=>77]);
 }
 `;
-    const result = spawnSync('C:/tools/php83/php.exe', [], {
+    const result = spawnSync(process.env.PHP_BINARY || 'php', [], {
         cwd: root,
         input: code,
         encoding: 'utf8',
@@ -127,7 +127,7 @@ test('складской цикл, повтор после обрыва отве
     const platform = await page.request.get('/api/v1/stocks');
     expect((await platform.json()).data[0].stock_quantity).toBe(77);
     await page.goto('/app');
-    await expect(page.locator('.warehouse-overview-metrics')).toContainText('6');
+    await expect(page.getByTestId('dashboard-physical-units').locator('dd')).toHaveText('6');
     await page.goto('/app/marketplace-stocks');
     await expect(page.locator('tbody')).toContainText('77 шт.');
     await page.goto('/app/stocks');

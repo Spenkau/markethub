@@ -83,7 +83,7 @@ onBeforeUnmount(() => {
             <h1>Маркетплейсы</h1>
             <p>Подключения вашей организации.</p>
         </div>
-        <button class="primary" data-tour="create-marketplace" @click="create">
+        <button class="primary" data-tour="create-marketplace" data-demo-write @click="create">
             Добавить подключение
         </button>
     </div>
@@ -142,7 +142,9 @@ onBeforeUnmount(() => {
                     :to="`/app/marketplaces/${a.id}?tab=products`"
                     class="account-stock-link"
                     >Открыть размещения →</RouterLink
-                ><button class="secondary full" @click="edit(a)">Редактировать</button>
+                ><button class="secondary full" data-demo-write @click="edit(a)">
+                    Редактировать
+                </button>
             </article>
         </div></PageState
     ><PaginationBar

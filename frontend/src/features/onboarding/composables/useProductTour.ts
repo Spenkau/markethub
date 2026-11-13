@@ -3,7 +3,8 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { router } from '../../../router';
 import { useAuth } from '../../../stores/auth';
 import { ApiError, message, pendingMutations } from '../../../api/client';
-import { tours } from '../config/tours';
+import { tours as regularTours } from '../config/tours';
+import { demoTours } from '../config/demoTours';
 import { tourProgressApi } from '../services/tourProgress';
 import type { ProgressAction, TourDefinition, TourPreferences, TourProgress } from '../types';
 export function pageIsBusy(): boolean {
@@ -40,6 +41,7 @@ function findVisible(selector?: string): HTMLElement | undefined {
 }
 export const useProductTour = defineStore('product-tour', () => {
     const auth = useAuth();
+    const tours = computed(() => (auth.isDemo ? demoTours : regularTours));
     const records = ref<TourProgress[]>([]),
         preferences = ref<TourPreferences>({ auto_start: true, checklist_collapsed: false });
     const loaded = ref(false),
@@ -52,9 +54,9 @@ export const useProductTour = defineStore('product-tour', () => {
         offeredId = ref('');
     const target = ref<HTMLElement>(),
         missing = ref(false);
-    const active = computed(() => tours.find((t) => t.id === activeId.value));
+    const active = computed(() => tours.value.find((t) => t.id === activeId.value));
     const step = computed(() => active.value?.steps[index.value]);
-    const offered = computed(() => tours.find((t) => t.id === offeredId.value));
+    const offered = computed(() => tours.value.find((t) => t.id === offeredId.value));
     let loading: Promise<void> | undefined,
         epoch = 0;
     let preferencesEpoch = 0;
@@ -190,7 +192,7 @@ export const useProductTour = defineStore('product-tour', () => {
             notice.value = 'Завершите работу с формой или закройте её, затем запустите экскурсию.';
             return;
         }
-        const tour = tours.find((t) => t.id === id);
+        const tour = tours.value.find((t) => t.id === id);
         if (!tour) return;
         busy.value = true;
         try {
@@ -306,7 +308,7 @@ export const useProductTour = defineStore('product-tour', () => {
             )
                 return;
             const route = router.currentRoute.value;
-            const candidate = tours.find((t) => {
+            const candidate = tours.value.find((t) => {
                 if (!t.trigger) return false;
                 const p = progress(t);
                 if (

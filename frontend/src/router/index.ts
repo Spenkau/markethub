@@ -113,5 +113,13 @@ router.beforeEach(async (to) => {
         if (!auth.user && to.meta.requiresAuth)
             return { path: '/login', query: { redirect: to.fullPath } };
         if (auth.user && to.path === '/login') return '/app';
+        if (auth.isDemo && /^\/app\/products\/(new|\d+\/edit)$/.test(to.path))
+            return '/app/products';
+        if (auth.isDemo && (to.query.create || to.query.connect)) {
+            const query = { ...to.query };
+            delete query.create;
+            delete query.connect;
+            return { path: to.path, query };
+        }
     }
 });

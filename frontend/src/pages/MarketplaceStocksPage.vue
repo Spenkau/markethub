@@ -40,7 +40,7 @@ const accounts = ref<MarketplaceAccount[]>([]),
     warehouses = ref<Warehouse[]>([]);
 const accountId = ref(String(props.accountId || route.query.marketplace_account_id || '')),
     locationId = ref(''),
-    current = ref(''),
+    current = ref(String(route.query.is_current || '')),
     mapping = ref(''),
     warehouseId = ref(''),
     mappingBusy = ref(false);
@@ -135,6 +135,8 @@ function filters() {
         marketplace_account_id: props.accountId || accountId.value || undefined,
         location_id: locationId.value || undefined,
         is_current: current.value || undefined,
+        is_demo: route.query.is_demo ? String(route.query.is_demo) : undefined,
+        origin: route.query.origin ? String(route.query.origin) : undefined,
         mapping: mapping.value || undefined,
         product_id: route.query.product_id ? String(route.query.product_id) : undefined,
     };
@@ -197,11 +199,15 @@ watch(
         route.query.marketplace_account_id,
         route.query.marketplace,
         route.query.stock,
+        route.query.is_current,
+        route.query.is_demo,
+        route.query.origin,
     ],
     () => {
         accountId.value = String(props.accountId || route.query.marketplace_account_id || '');
         marketplace.value = String(route.query.marketplace || '');
         stock.value = String(route.query.stock || '');
+        current.value = String(route.query.is_current || '');
         page.value = 1;
         void load();
     },
@@ -363,7 +369,7 @@ async function changePage(value: number) {
                 <option value="desc">По убыванию</option>
             </select>
         </div>
-        <div v-if="selectedLocation" class="toolbar">
+        <div v-if="selectedLocation" class="toolbar" data-demo-write>
             <label
                 >Локальный склад для {{ selectedLocation.name }}
                 <select v-model="warehouseId" aria-label="Сопоставление склада">

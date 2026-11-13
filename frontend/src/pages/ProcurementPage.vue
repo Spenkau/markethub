@@ -33,7 +33,7 @@ function routeTab(): Tab {
 }
 const tab = ref<Tab>(routeTab()),
     search = ref(''),
-    status = ref(''),
+    status = ref(String(route.query.status || '')),
     active = ref(''),
     supplierFilter = ref<number | null>(null),
     warehouseFilter = ref<number | null>(null),
@@ -111,10 +111,14 @@ function schedule() {
 }
 watch([search, status, active, supplierFilter, warehouseFilter, perPage], schedule);
 watch(tab, () => {
-    status.value = '';
     search.value = '';
     page.value = 1;
-    void router.replace({ query: { tab: tab.value === 'orders' ? undefined : tab.value } });
+    if (routeTab() !== tab.value) {
+        status.value = '';
+        void router.replace({ query: { tab: tab.value === 'orders' ? undefined : tab.value } });
+    } else {
+        status.value = String(route.query.status || '');
+    }
     schedule();
 });
 watch(
@@ -124,6 +128,12 @@ watch(
     },
 );
 watch(() => route.query.purchase_order_id, schedule);
+watch(
+    () => route.query.status,
+    () => {
+        status.value = String(route.query.status || '');
+    },
+);
 async function applyContext() {
     if (route.query.create !== 'purchase' || showOrder.value) return;
     actionError.value = '';
@@ -209,10 +219,17 @@ function reset() {
             v-if="tab === 'suppliers'"
             class="primary"
             data-tour="create-supplier"
+            data-demo-write
             @click="editSupplier()"
         >
             <Plus :size="17" />Новый поставщик</button
-        ><button v-else class="primary" data-tour="create-purchase" @click="createPurchase">
+        ><button
+            v-else
+            class="primary"
+            data-tour="create-purchase"
+            data-demo-write
+            @click="createPurchase"
+        >
             <Plus :size="17" />Новая закупка
         </button>
     </div>
@@ -223,6 +240,7 @@ function reset() {
             v-if="savedSupplier.is_active"
             :to="`/app/purchases?create=purchase&supplier_id=${savedSupplier.id}`"
             class="text-link"
+            data-demo-write
             >Создать закупку у поставщика →</RouterLink
         >
     </div>
@@ -289,9 +307,19 @@ function reset() {
         </div>
         <PageState :loading="loading" :error="error" :empty="!meta?.total" @retry="load"
             ><template #emptyActions
-                ><button v-if="tab === 'suppliers'" class="secondary" @click="editSupplier()">
+                ><button
+                    v-if="tab === 'suppliers'"
+                    class="secondary"
+                    data-demo-write
+                    @click="editSupplier()"
+                >
                     Добавить первого поставщика</button
-                ><button v-else-if="tab === 'orders'" class="secondary" @click="createPurchase">
+                ><button
+                    v-else-if="tab === 'orders'"
+                    class="secondary"
+                    data-demo-write
+                    @click="createPurchase"
+                >
                     Создать первый черновик</button
                 ><RouterLink v-else to="/app/purchases" class="text-link"
                     >Выбрать закупку для приёмки →</RouterLink
@@ -383,17 +411,20 @@ function reset() {
                                         v-if="supplier.is_active"
                                         :to="`/app/purchases?create=purchase&supplier_id=${supplier.id}`"
                                         class="text-link nowrap"
+                                        data-demo-write
                                         >Создать закупку</RouterLink
                                     >
                                     <button
                                         class="icon-button"
                                         aria-label="Редактировать поставщика"
+                                        data-demo-write
                                         @click="editSupplier(supplier)"
                                     >
                                         <Pencil :size="16" /></button
                                     ><button
                                         class="icon-button danger-text"
                                         aria-label="Удалить поставщика"
+                                        data-demo-write
                                         @click="
                                             deleting = supplier;
                                             actionError = '';
@@ -498,9 +529,16 @@ function reset() {
             </p>
             <p v-if="actionError" class="alert" role="alert">{{ actionError }}</p>
             <div class="form-actions">
-                <button class="secondary" :disabled="busy" @click="deleting = undefined">
+                <button
+                    class="secondary"
+                    :disabled="busy"
+                    data-demo-write
+                    @click="deleting = undefined"
+                >
                     Отмена</button
-                ><button class="danger" :disabled="busy" @click="removeSupplier">Удалить</button>
+                ><button class="danger" :disabled="busy" data-demo-write @click="removeSupplier">
+                    Удалить
+                </button>
             </div>
         </section>
     </div>

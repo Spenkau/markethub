@@ -11,11 +11,14 @@
         "format": "prettier --write .",
         "format:check": "prettier --check .",
         "test": "vitest run",
-        "test:e2e": "playwright test",
-        "test:e2e:inventory": "playwright test --config=playwright.inventory.config.ts",
-        "test:e2e:procurement": "playwright test --config=playwright.procurement.config.ts",
-        "test:e2e:onboarding": "playwright test --config=playwright.onboarding.config.ts",
-        "test:e2e:shopify": "playwright test --config=playwright.shopify.config.ts"
+        "test:e2e": "node scripts/run-e2e.mjs",
+        "test:e2e:inventory": "node scripts/run-e2e.mjs --config=playwright.inventory.config.ts",
+        "test:e2e:procurement": "node scripts/run-e2e.mjs --config=playwright.procurement.config.ts",
+        "test:e2e:onboarding": "node scripts/run-e2e.mjs --config=playwright.onboarding.config.ts",
+        "test:e2e:shopify": "node scripts/run-e2e.mjs --config=playwright.shopify.config.ts",
+        "test:e2e:dashboard": "node scripts/run-e2e.mjs --config=playwright.dashboard.config.ts",
+        "test:e2e:demo": "node scripts/run-e2e.mjs --config=playwright.demo.config.ts",
+        "test:e2e:regression": "node scripts/run-e2e.mjs --config=playwright.regression.config.ts"
     },
     "dependencies": {
         "axios": "^1.13.0",

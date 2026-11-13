@@ -146,6 +146,7 @@ onBeforeUnmount(() => {
                     v-if="data.local_product"
                     :to="`/app/products/${data.local_product.id}/edit`"
                     class="primary"
+                    data-demo-write
                     >Редактировать</RouterLink
                 >
             </div>
@@ -176,6 +177,7 @@ onBeforeUnmount(() => {
                         <RouterLink
                             :to="`/app/purchases?create=purchase&product_id=${data.local_product.id}`"
                             class="text-link"
+                            data-demo-write
                             >Создать закупку с товаром →</RouterLink
                         ></template
                     >
@@ -286,6 +288,7 @@ onBeforeUnmount(() => {
                             class="primary"
                             :disabled="!!pending[source.id] || refreshing === source.id"
                             data-tour="source-refresh"
+                            data-demo-write
                             @click="refresh(source)"
                         >
                             {{
@@ -295,12 +298,14 @@ onBeforeUnmount(() => {
                             v-if="source.origin === 'imported'"
                             class="secondary"
                             data-tour="source-mapping"
+                            data-demo-write
                             @click="mapping = source"
                         >
                             Сопоставить с MarketHub</button
                         ><button
                             v-if="source.origin === 'imported' && source.product_id"
                             class="text-link"
+                            data-demo-write
                             @click="unmap(source)"
                         >
                             Отменить сопоставление</button
@@ -428,12 +433,12 @@ onBeforeUnmount(() => {
 .catalog-detail-grid {
     display: grid;
     grid-template-columns: minmax(240px, 1fr) minmax(260px, 1.4fr);
-    gap: 20px;
-    margin-bottom: 20px;
+    gap: 16px;
+    margin-bottom: 24px;
 }
 .source-card {
     padding: 24px 0;
-    border-top: 1px solid #e0e5ee;
+    border-top: 1px solid var(--border);
     overflow-wrap: anywhere;
 }
 .source-card h3 {
@@ -446,7 +451,7 @@ onBeforeUnmount(() => {
 .source-card h4 {
     margin-top: 20px;
 }
-@media (max-width: 700px) {
+@media (max-width: 1000px) {
     .catalog-detail-grid {
         grid-template-columns: 1fr;
     }

@@ -1,6 +1,13 @@
 import { client, csrf } from './client';
 import type { User, Organization, Page } from '../types';
 export const authApi = {
+    async demoStatus() {
+        return (await client.get<{ available: boolean }>('api/v1/auth/demo')).data.available;
+    },
+    async demoLogin() {
+        await csrf();
+        return (await client.post<{ data: User }>('api/v1/auth/demo')).data.data;
+    },
     async me() {
         return (await client.get<{ data: User }>('api/v1/auth/me')).data.data;
     },

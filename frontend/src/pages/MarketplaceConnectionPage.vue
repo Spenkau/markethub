@@ -29,7 +29,7 @@ const id = computed(() => Number(route.params.id)),
             'products',
             'settings',
             ...(caps.value.includes('inventory') || account.value?.is_demo ? ['inventory'] : []),
-            ...(caps.value.includes('sync') ? ['history'] : []),
+            ...(caps.value.includes('sync') || caps.value.includes('history') ? ['history'] : []),
         ];
         return allowed.includes(value) ? value : 'overview';
     }),
@@ -180,7 +180,9 @@ onBeforeUnmount(() => {
                     <h1>{{ account.name }}</h1>
                     <p>{{ account.configuration.shop_domain || account.status }}</p>
                 </div>
-                <button class="secondary" @click="edit = true">Изменить подключение</button>
+                <button class="secondary" data-demo-write @click="edit = true">
+                    Изменить подключение
+                </button>
             </div>
             <div class="tabs" role="tablist" data-tour="connection-tabs">
                 <button
@@ -191,7 +193,9 @@ onBeforeUnmount(() => {
                             ? [{ id: 'inventory', name: 'Остатки' }]
                             : []),
                         { id: 'settings', name: 'Настройки' },
-                        ...(caps.includes('sync') ? [{ id: 'history', name: 'История' }] : []),
+                        ...(caps.includes('sync') || caps.includes('history')
+                            ? [{ id: 'history', name: 'История' }]
+                            : []),
                     ]"
                     :key="t.id"
                     role="tab"
@@ -207,6 +211,9 @@ onBeforeUnmount(() => {
                 data-tour="connection-overview"
             >
                 <h2>Состояние подключения</h2>
+                <p v-if="account.marketplace === 'shopify_demo'" class="info-banner">
+                    Synthetic demo: товары и история созданы локально, Shopify API не вызывался.
+                </p>
                 <p v-if="account.is_demo" class="info-banner">
                     Демонстрационные данные. Внешняя синхронизация не поддерживается.
                 </p>
@@ -241,6 +248,7 @@ onBeforeUnmount(() => {
                         v-if="caps.includes('check_connection')"
                         class="secondary"
                         :disabled="busy || !!run"
+                        data-demo-write
                         @click="check"
                     >
                         Проверить API</button
@@ -249,6 +257,7 @@ onBeforeUnmount(() => {
                         class="primary"
                         :disabled="busy || !!run || account.status !== 'active'"
                         data-tour="connection-sync"
+                        data-demo-write
                         @click="account.integration.initial_import_at ? sync() : (confirm = true)"
                     >
                         {{
@@ -276,7 +285,7 @@ onBeforeUnmount(() => {
                 data-tour="connection-settings"
             >
                 <h2>Настройки</h2>
-                <form v-if="caps.includes('sync')" @submit.prevent="saveSettings">
+                <form v-if="caps.includes('sync')" data-demo-write @submit.prevent="saveSettings">
                     <label
                         >Частота синхронизации<select v-model="frequency">
                             <option value="manual">Вручную</option>
@@ -292,7 +301,7 @@ onBeforeUnmount(() => {
                 <p v-else>Автоматическое расписание для demo недоступно.</p>
             </section>
             <MarketplaceSyncHistory
-                v-else-if="tab === 'history' && caps.includes('sync')"
+                v-else-if="tab === 'history' && (caps.includes('sync') || caps.includes('history'))"
                 :account-id="id"
                 :revision="revision"
             /> </template
@@ -310,8 +319,11 @@ onBeforeUnmount(() => {
                 автоматически. Физический склад не изменяется.
             </p>
             <div class="form-actions">
-                <button class="secondary" :disabled="busy" @click="confirm = false">Назад</button
-                ><button class="primary" :disabled="busy" @click="sync">Подтвердить импорт</button>
+                <button class="secondary" :disabled="busy" data-demo-write @click="confirm = false">
+                    Назад</button
+                ><button class="primary" :disabled="busy" data-demo-write @click="sync">
+                    Подтвердить импорт
+                </button>
             </div>
         </section>
     </div>
@@ -345,14 +357,14 @@ onBeforeUnmount(() => {
 }
 .tabs button {
     padding: 12px 18px;
-    border: 1px solid #dce3ed;
+    border: 1px solid var(--border);
     border-radius: 8px;
     background: white;
     white-space: nowrap;
 }
 .tabs button[aria-selected='true'] {
-    color: #2563eb;
-    border-color: #2563eb;
+    color: var(--primary);
+    border-color: var(--primary);
 }
 .inventory-actions {
     display: flex;

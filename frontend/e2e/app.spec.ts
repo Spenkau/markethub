@@ -7,7 +7,7 @@ const password = randomBytes(24).toString('base64url');
 const sku = `UI-CHECK-${randomBytes(8).toString('hex')}`;
 const root = fileURLToPath(new URL('../../', import.meta.url));
 function php(body: string) {
-    const result = spawnSync('C:/tools/php83/php.exe', [], {
+    const result = spawnSync(process.env.PHP_BINARY || 'php', [], {
         cwd: root,
         input: `<?php require 'vendor/autoload.php'; $app = require 'bootstrap/app.php'; $app->make(Illuminate\\Contracts\\Console\\Kernel::class)->bootstrap(); if (!app()->environment('testing') || config('database.default') !== 'pgsql' || !str_ends_with(config('database.connections.pgsql.database'), '_test')) { throw new RuntimeException('Isolated PostgreSQL test database required'); } ${body}`,
         env: {
@@ -38,7 +38,9 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     const runtimeErrors: string[] = [];
     page.on('pageerror', (error) => runtimeErrors.push(error.stack || error.message));
     await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1 })).toContainText('Управляйте продажами');
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(
+        'Каталог, склады и площадки',
+    );
     await page.screenshot({ path: testInfo.outputPath('landing.png'), fullPage: true });
     await page.goto('/app/products');
     await expect(page).toHaveURL(/\/login/);
@@ -114,24 +116,24 @@ test('Sanctum, восстановление сессии, каталог, CRUD, 
     await page.getByLabel('Остаток', { exact: true }).selectOption('');
     await expect(page.locator('tbody tr').first()).toBeVisible();
     await page.goto('/app');
-    await expect(page.locator('.stat-card')).toHaveCount(4);
-    await expect(page.locator('.stat-card').first().locator('strong')).not.toHaveText('');
-    await expect(page.getByRole('heading', { name: 'Остатки на площадках' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Недавно добавлены' })).toBeVisible();
+    await expect(page.locator('.dashboard-kpi')).toHaveCount(4);
+    await expect(page.locator('.dashboard-kpi').first().locator('strong')).not.toHaveText('');
+    await expect(page.getByRole('heading', { name: 'Остатки площадок' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Последние операции' })).toBeVisible();
     const total = await page.request.get('/api/v1/products?per_page=1');
     const totalBody = await total.json();
-    await expect(page.locator('.stat-card').first().locator('strong')).toHaveText(
+    await expect(page.locator('.dashboard-kpi').first().locator('strong')).toHaveText(
         totalBody.meta.total.toLocaleString('ru-RU'),
     );
     await page.screenshot({ path: testInfo.outputPath('dashboard.png'), fullPage: true });
-    await page.route('**/api/v1/products?**', (route) =>
+    await page.route('**/api/v1/dashboard/overview**', (route) =>
         route.fulfill({ status: 503, contentType: 'application/json', body: '{}' }),
     );
-    await page.getByRole('button', { name: 'Обновить обзор' }).click();
+    await page.getByRole('button', { name: 'Обновить', exact: true }).click();
     await expect(page.getByRole('heading', { name: 'Не удалось загрузить данные' })).toBeVisible();
-    await page.unroute('**/api/v1/products?**');
+    await page.unroute('**/api/v1/dashboard/overview**');
     await page.getByRole('button', { name: 'Повторить', exact: true }).click();
-    await expect(page.locator('.stat-card')).toHaveCount(4);
+    await expect(page.locator('.dashboard-kpi')).toHaveCount(4);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.getByRole('button', { name: 'Открыть меню' }).click();
     await expect(page.locator('.sidebar')).toHaveClass(/opened/);

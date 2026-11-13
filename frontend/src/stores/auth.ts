@@ -1,9 +1,10 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { authApi } from '../api/auth';
 import { ApiError, csrf } from '../api/client';
 import type { User, Organization } from '../types';
 export const useAuth = defineStore('auth', () => {
+    const isDemo = computed(() => !!user.value?.is_demo_access);
     const user = ref<User | null>(null),
         ready = ref(false),
         organizations = ref<Organization[]>([]);
@@ -48,5 +49,5 @@ export const useAuth = defineStore('auth', () => {
         } while (page <= last);
         organizations.value = result;
     }
-    return { user, ready, organizations, restore, login, logout, loadOrganizations };
+    return { user, isDemo, ready, organizations, restore, login, logout, loadOrganizations };
 });

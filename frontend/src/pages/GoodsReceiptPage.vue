@@ -104,6 +104,7 @@ function saved(value: GoodsReceipt) {
                         class="primary"
                         :disabled="busy"
                         data-tour="receipt-confirm"
+                        data-demo-write
                         @click="action('confirm')"
                     >
                         {{ busy ? 'Проводим…' : 'Подтвердить приёмку' }}</button
@@ -111,12 +112,14 @@ function saved(value: GoodsReceipt) {
                         v-if="canEdit"
                         class="secondary"
                         :disabled="busy"
+                        data-demo-write
                         @click="editing = true"
                     >
                         Редактировать приёмку</button
                     ><button
                         class="secondary"
                         :disabled="busy"
+                        data-demo-write
                         @click="
                             cancelling = true;
                             actionError = '';
@@ -224,8 +227,14 @@ function saved(value: GoodsReceipt) {
             <p>Остатки не изменятся. Отменённый документ останется в списке приёмок.</p>
             <p v-if="actionError" class="alert" role="alert">{{ actionError }}</p>
             <div class="form-actions">
-                <button class="secondary" :disabled="busy" @click="cancelling = false">Назад</button
-                ><button class="danger" :disabled="busy" @click="action('cancel')">
+                <button
+                    class="secondary"
+                    :disabled="busy"
+                    data-demo-write
+                    @click="cancelling = false"
+                >
+                    Назад</button
+                ><button class="danger" :disabled="busy" data-demo-write @click="action('cancel')">
                     Подтвердить отмену
                 </button>
             </div>

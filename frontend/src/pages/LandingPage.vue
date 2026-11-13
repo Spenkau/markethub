@@ -1,4 +1,37 @@
 <script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { authApi } from '../api/auth';
+import { useAuth } from '../stores/auth';
+import { message } from '../api/client';
+const available = ref(false),
+    checking = ref(true),
+    busy = ref(false),
+    error = ref('');
+const auth = useAuth(),
+    router = useRouter();
+onMounted(async () => {
+    try {
+        available.value = await authApi.demoStatus();
+    } catch {
+        available.value = false;
+    } finally {
+        checking.value = false;
+    }
+});
+async function enterDemo() {
+    busy.value = true;
+    error.value = '';
+    try {
+        auth.user = await authApi.demoLogin();
+        auth.ready = true;
+        await router.push('/app');
+    } catch (e) {
+        error.value = message(e);
+    } finally {
+        busy.value = false;
+    }
+}
 import {
     ArrowUpRight,
     Package,
@@ -12,17 +45,17 @@ const features = [
     {
         icon: Layers,
         title: 'Остатки',
-        text: 'Размещения с нулевыми и низкими остатками — под рукой.',
+        text: 'Внешние остатки отдельно от физических. Склады и журнал движений.',
     },
     {
         icon: Store,
         title: 'Маркетплейсы',
-        text: 'Управление демонстрационными подключениями WB и Ozon.',
+        text: 'Shopify: импорт товаров, вариантов и остатков, только чтение. WB/Ozon: demo.',
     },
     {
         icon: ChartNoAxesCombined,
-        title: 'Обзор каталога',
-        text: 'Доступные показатели каталога. Аналитика продаж — в планах.',
+        title: 'Рабочий обзор',
+        text: 'Dashboard, поставщики, закупки и приёмка. Очереди и история синхронизации.',
     },
 ];
 </script>
@@ -33,26 +66,55 @@ const features = [
                 ><span class="brand-symbol">M</span>MarketHub<span class="brand-dot"
                     >.</span
                 ></RouterLink
-            ><RouterLink to="/login" class="secondary"
-                >Войти в кабинет <ArrowUpRight :size="16"
-            /></RouterLink>
+            ><a href="https://jarovit.org/" class="secondary" target="_blank" rel="noreferrer"
+                >Проект JAROVIT <ArrowUpRight :size="16"
+            /></a>
         </header>
         <main>
             <section class="hero">
                 <div class="eyebrow">
                     <span class="status-dot"></span>ВАШ КАТАЛОГ. ОДНО ПРОСТРАНСТВО.
                 </div>
-                <h1>Управляйте продажами на маркетплейсах <span>в одном месте</span></h1>
+                <h1>Каталог, склады и площадки <span>в одном пространстве</span></h1>
                 <p>
-                    Товары, размещения и остатки Wildberries и Ozon в понятном рабочем кабинете.
-                    Меньше переключений — больше внимания бизнесу.
+                    MarketHub — портфолио-проект разработчика JAROVIT. Единый каталог, сопоставление
+                    вариантов и складской учёт в адаптивном рабочем кабинете.
                 </p>
-                <RouterLink to="/login" class="primary"
-                    >Войти в кабинет <ArrowRight :size="18"
-                /></RouterLink>
-                <div class="hero-note">Демонстрационные данные · Без реальных интеграций</div>
+                <button
+                    v-if="available"
+                    class="primary"
+                    :disabled="busy"
+                    :aria-busy="busy"
+                    @click="enterDemo"
+                >
+                    {{ busy ? 'Открываем демоверсию…' : 'Войти в демонстрационный аккаунт' }}
+                    <ArrowRight :size="18" />
+                </button>
+                <p v-else class="hero-note" role="status">
+                    {{
+                        checking
+                            ? 'Проверяем доступность demo…'
+                            : 'Публичная демоверсия пока не подготовлена.'
+                    }}
+                </p>
+                <p v-if="error" class="alert" role="alert">{{ error }}</p>
+                <div class="hero-note">
+                    Demo: синтетические данные, только просмотр, без внешних API-вызовов.
+                </div>
             </section>
-            <section class="features">
+            <figure class="landing-preview">
+                <img
+                    src="/demo-assets/workspace-preview.png"
+                    alt="Настоящий интерфейс MarketHub: синтетический каталог, остатки и подключения"
+                    width="1440"
+                    height="900"
+                    loading="lazy"
+                />
+                <figcaption class="sr-only">
+                    Демонстрационные данные JAROVIT. Функции продаж и финансов не заявляются.
+                </figcaption>
+            </figure>
+            <section id="features" class="features">
                 <article v-for="feature in features" :key="feature.title">
                     <div class="feature-icon">
                         <component :is="feature.icon" :size="23" />
@@ -65,12 +127,16 @@ const features = [
                 <div>
                     <p class="eyebrow">ПОРЯДОК В ЕЖЕДНЕВНОЙ РАБОТЕ</p>
                     <h2>Всё начинается с понятного каталога.</h2>
+                    <p>
+                        В обычной версии Shopify работает в read-only режиме. Покупательские заказы
+                        и финансы не реализованы.
+                    </p>
                 </div>
-                <RouterLink to="/login" class="secondary"
-                    >Открыть MarketHub <ArrowUpRight :size="18"
-                /></RouterLink>
+                <a href="#features" class="secondary"
+                    >Возможности проекта <ArrowUpRight :size="18"
+                /></a>
             </section>
         </main>
-        <footer>MarketHub <span>Рабочее пространство продавца</span></footer>
+        <footer>MarketHub · JAROVIT <span>Портфолио разработчика</span></footer>
     </div>
 </template>

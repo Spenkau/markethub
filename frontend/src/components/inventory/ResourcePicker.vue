@@ -163,13 +163,13 @@ onBeforeUnmount(() => {
     text-align: left;
     white-space: normal;
     padding: 10px 12px;
-    border: 1px solid #dce3ed;
+    border: 1px solid var(--border);
     border-radius: 8px;
     background: white;
     color: #24344d;
 }
 .picker-option.chosen {
-    border-color: #2563eb;
+    border-color: var(--primary);
     background: #eff6ff;
 }
 </style>

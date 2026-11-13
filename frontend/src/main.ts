@@ -6,6 +6,7 @@ import { useAuth } from './stores/auth';
 import './assets/main.css';
 import './assets/workspace.css';
 import './features/onboarding/onboarding.css';
+import { installDialogAccessibility } from './utils/dialogs';
 const app = createApp(App);
 app.use(createPinia());
 app.use(router);
@@ -19,3 +20,4 @@ window.addEventListener('session-expired', () => {
         });
 });
 app.mount('#app');
+installDialogAccessibility();

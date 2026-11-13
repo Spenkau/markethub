@@ -86,9 +86,19 @@ async function receiptSaved(value: GoodsReceipt) {
             <p v-if="actionError && !cancelling" class="alert" role="alert">{{ actionError }}</p>
             <div class="inventory-actions">
                 <template v-if="order.status === 'draft'"
-                    ><button class="secondary" :disabled="busy" @click="editing = true">
+                    ><button
+                        class="secondary"
+                        :disabled="busy"
+                        data-demo-write
+                        @click="editing = true"
+                    >
                         Редактировать черновик</button
-                    ><button class="primary" :disabled="busy" @click="transition('order')">
+                    ><button
+                        class="primary"
+                        :disabled="busy"
+                        data-demo-write
+                        @click="transition('order')"
+                    >
                         Отметить заказанной
                     </button></template
                 ><button
@@ -96,6 +106,7 @@ async function receiptSaved(value: GoodsReceipt) {
                     class="primary"
                     :disabled="busy"
                     data-tour="purchase-receive"
+                    data-demo-write
                     @click="receiving = true"
                 >
                     Создать приёмку</button
@@ -103,6 +114,7 @@ async function receiptSaved(value: GoodsReceipt) {
                     v-if="['draft', 'ordered', 'partially_received'].includes(order.status)"
                     class="secondary"
                     :disabled="busy"
+                    data-demo-write
                     @click="
                         cancelling = true;
                         actionError = '';
@@ -217,8 +229,19 @@ async function receiptSaved(value: GoodsReceipt) {
             </p>
             <p v-if="actionError" class="alert" role="alert">{{ actionError }}</p>
             <div class="form-actions">
-                <button class="secondary" :disabled="busy" @click="cancelling = false">Назад</button
-                ><button class="danger" :disabled="busy" @click="transition('cancel')">
+                <button
+                    class="secondary"
+                    :disabled="busy"
+                    data-demo-write
+                    @click="cancelling = false"
+                >
+                    Назад</button
+                ><button
+                    class="danger"
+                    :disabled="busy"
+                    data-demo-write
+                    @click="transition('cancel')"
+                >
                     Подтвердить отмену
                 </button>
             </div>

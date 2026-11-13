@@ -19,7 +19,7 @@ if (getenv('PROCUREMENT_SETUP') === '1') {
     App\Models\Product::factory()->create(['organization_id'=>$org->id,'sku'=>'PROCUREMENT-1','name'=>'Товар поставки']);
     App\Models\Product::factory()->create(['organization_id'=>$org->id,'sku'=>'PROCUREMENT-2','name'=>'Второй товар']);
 }`;
-    const result = spawnSync('C:/tools/php83/php.exe', [], {
+    const result = spawnSync(process.env.PHP_BINARY || 'php', [], {
         cwd: root,
         input: script,
         encoding: 'utf8',
@@ -155,8 +155,13 @@ test('заказ поставщику, частичная и полная при
     await page.goto('/app/purchases?tab=receipts');
     await expect(page.locator('tbody tr')).toHaveCount(2);
     await page.setViewportSize({ width: 390, height: 844 });
-    await expect(page.getByLabel('Активная организация')).toBeVisible();
-    await expect(page.locator('.sidebar')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, -236, 0)');
+    await page.getByRole('button', { name: 'Открыть меню', exact: true }).click();
+    await expect(page.getByLabel('Организация в мобильном меню')).toBeVisible();
+    await page
+        .locator('.sidebar')
+        .getByRole('button', { name: 'Закрыть меню', exact: true })
+        .click();
+    await expect(page.locator('.sidebar')).toHaveCSS('transform', 'matrix(1, 0, 0, 1, -288, 0)');
     await page.screenshot({ path: testInfo.outputPath('receipts-mobile.png'), fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
         390,
